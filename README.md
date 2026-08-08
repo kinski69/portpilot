@@ -4,6 +4,10 @@ Lokales Docker-Dashboard für Linux. Zeigt laufende Container, belegte Host-Port
 Images, Volumes, Netzwerke und Engine-Ereignisse in Echtzeit — mit dem Schwerpunkt,
 Port-Konflikte zu finden, bevor sie einen Start scheitern lassen.
 
+Läuft auch mit **Podman** (rootless bestätigt) — PortPilot spricht die
+Docker Engine API, nicht die Docker-CLI, und Podmans Socket ist dazu
+größtenteils kompatibel. Details unter [Podman](#podman).
+
 **Nur lesend.** PortPilot startet, stoppt oder löscht nichts. Es gibt keine
 Endpunkte, die etwas verändern.
 
@@ -14,7 +18,7 @@ Endpunkte, die etwas verändern.
 | | |
 |---|---|
 | Node.js | 20 oder neuer (inklusive `npm`) |
-| Docker | laufender Daemon, systemweit oder rootless |
+| Docker | laufender Daemon, systemweit oder rootless — oder Podman, siehe [Podman](#podman) |
 | Berechtigung | Lesezugriff auf den Docker-Socket |
 
 Die Docker-CLI wird **nicht** benötigt — PortPilot spricht direkt mit dem Socket.
@@ -87,6 +91,34 @@ konfigurieren; andernfalls:
 DOCKER_SOCKET="$XDG_RUNTIME_DIR/docker.sock" ./bin/portpilot
 ```
 
+### Podman
+
+Bestätigt lauffähig mit rootless Podman 5.8.4 (Docker-kompatible API v1.44).
+PortPilot verlangt keinen echten Docker-Daemon — es spricht nur die
+Docker-kompatible HTTP-API über den Socket, und Podman bringt genau die mit.
+
+Auf vielen Fedora-Installationen ist `DOCKER_HOST` bereits auf den
+rootless-Socket gesetzt (z. B. durch `systemctl --user enable --now podman.socket`),
+dann findet PortPilot ihn automatisch über die oben beschriebene Suchreihenfolge.
+Falls nicht, von Hand:
+
+```bash
+systemctl --user enable --now podman.socket
+DOCKER_SOCKET="/run/user/$(id -u)/podman/podman.sock" ./bin/portpilot
+```
+
+Erkannten Socket und API-Version prüfen:
+
+```bash
+curl -s http://127.0.0.1:7070/api/health | python3 -m json.tool
+```
+
+**Eingeschränkt geprüft:** Container-Liste, Ports, Images und Volumes sind
+gegen echtes Podman verifiziert. Live-Ereignisse (SSE) und Log-Streaming
+wurden noch nicht gezielt gegen Podmans API v1.44 getestet — PortPilot ist
+gegen Docker Engine API v1.55 entwickelt. Bleibt die Ereignisse-Ansicht leer
+oder fehlen Logs, ist das der erste Verdacht.
+
 ## In das Anwendungsmenü eintragen
 
 ```bash
@@ -156,6 +188,8 @@ demselben Port.
   teuren `df`-Aufruf; statt eines erfundenen Werts steht dort `—`.
 - **Logs** werden alle 5 Sekunden nachgeladen, nicht als Dauerstream.
 - **Keine Schreibaktionen.** Container steuern weiterhin über `docker` oder `docker compose`.
+- **Podman:** Container, Ports, Images und Volumes bestätigt. Live-Ereignisse und
+  Log-Streaming ungetestet — siehe [Podman](#podman).
 
 ## Lizenz
 
