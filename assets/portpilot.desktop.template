@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=PortPilot
+GenericName=Docker-Dashboard
+Comment=Laufende Container, belegte Ports und Konflikte auf einen Blick
+Exec=__APP_DIR__/bin/portpilot
+Icon=__APP_DIR__/assets/portpilot.svg
+Terminal=false
+Categories=Development;Monitor;
+Keywords=docker;container;ports;monitoring;
+StartupNotify=true

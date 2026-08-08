@@ -16,7 +16,12 @@ async function startServer(): Promise<void> {
   app.use('/api', createApiRouter());
 
   if (process.env.NODE_ENV === 'production') {
-    const distPath = path.join(process.cwd(), 'dist');
+    // Nicht ueber process.cwd() aufloesen: beim Start aus dem Anwendungsmenue
+    // ist das Arbeitsverzeichnis das Home-Verzeichnis, nicht das Repo.
+    // Das gebuendelte server.cjs liegt selbst in dist/.
+    const distPath =
+      process.env.PORTPILOT_DIST ??
+      (typeof __dirname !== 'undefined' ? __dirname : path.join(process.cwd(), 'dist'));
     app.use(express.static(distPath));
     app.get('*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));

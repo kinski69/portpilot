@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Legt den Menue-Eintrag fuer den aktuellen Benutzer an (kein sudo noetig).
+set -euo pipefail
+
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+APP_DIR="$(dirname "$(dirname "$SCRIPT_PATH")")"
+TARGET_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+TARGET="${TARGET_DIR}/portpilot.desktop"
+
+mkdir -p "$TARGET_DIR"
+sed "s|__APP_DIR__|${APP_DIR}|g" "${APP_DIR}/assets/portpilot.desktop.template" > "$TARGET"
+chmod +x "$TARGET"
+
+command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$TARGET_DIR" 2>/dev/null || true
+
+printf '\033[36m[portpilot]\033[0m Menue-Eintrag angelegt: %s\n' "$TARGET"
+printf '\033[36m[portpilot]\033[0m PortPilot ist jetzt im Anwendungsmenue zu finden.\n'
+printf '\033[36m[portpilot]\033[0m Entfernen mit:  rm %s\n' "$TARGET"
