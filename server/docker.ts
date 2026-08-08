@@ -11,8 +11,8 @@ import type {
   VolumeMount,
 } from '../src/types';
 
-// Ein einziger Client fuer den gesamten Prozess.
-// Socket-Pfad ist per DOCKER_SOCKET ueberschreibbar (z.B. rootless Docker).
+// Ein einziger Client für den gesamten Prozess.
+// Socket-Pfad ist per DOCKER_SOCKET überschreibbar (z.B. rootless Docker).
 const socketPath = process.env.DOCKER_SOCKET ?? '/var/run/docker.sock';
 const docker = new Docker({ socketPath });
 
@@ -20,8 +20,8 @@ const docker = new Docker({ socketPath });
 export class DockerUnavailableError extends Error {
   constructor(cause: unknown) {
     super(
-      `Docker-Engine nicht erreichbar ueber ${socketPath}. ` +
-        `Laeuft der Daemon (systemctl start docker) und ist der Benutzer in der Gruppe "docker"?`,
+      `Docker-Engine nicht erreichbar über ${socketPath}. ` +
+        `Läuft der Daemon (systemctl start docker) und ist der Benutzer in der Gruppe "docker"?`,
     );
     this.name = 'DockerUnavailableError';
     this.cause = cause;
@@ -45,7 +45,7 @@ async function callDocker<T>(fn: () => Promise<T>): Promise<T> {
 // ---------------------------------------------------------------------------
 
 /**
- * Uebersetzt den Docker-State in den UI-Status.
+ * Übersetzt den Docker-State in den UI-Status.
  * Docker kennt: created | running | paused | restarting | removing | exited | dead
  */
 function mapStatus(state: string, exitCode: number | undefined): ContainerStatus {
@@ -69,8 +69,8 @@ function mapStatus(state: string, exitCode: number | undefined): ContainerStatus
 /**
  * Normalisiert Port-Bindings.
  *
- * Docker meldet fuer einen Container, der auf allen Interfaces lauscht, zwei
- * Eintraege (0.0.0.0 und ::) fuer dieselbe Bindung. Beide zu behalten wuerde in
+ * Docker meldet für einen Container, der auf allen Interfaces lauscht, zwei
+ * Einträge (0.0.0.0 und ::) für dieselbe Bindung. Beide zu behalten würde in
  * der Kollisionserkennung einen Konflikt des Containers mit sich selbst erzeugen.
  * Wildcard-Adressen werden daher auf 0.0.0.0 vereinheitlicht und Duplikate
  * (hostIp + hostPort + protocol) entfernt.
@@ -150,7 +150,7 @@ function emptyStats(): ContainerStats {
 function computeStats(raw: Docker.ContainerStats): ContainerStats {
   const cpuDelta = raw.cpu_stats.cpu_usage.total_usage - raw.precpu_stats.cpu_usage.total_usage;
   const systemDelta = (raw.cpu_stats.system_cpu_usage ?? 0) - (raw.precpu_stats.system_cpu_usage ?? 0);
-  // online_cpus fehlt bei aelteren Daemons; dann aus der percpu-Liste ableiten.
+  // online_cpus fehlt bei älteren Daemons; dann aus der percpu-Liste ableiten.
   const cpuCount = raw.cpu_stats.online_cpus || raw.cpu_stats.cpu_usage.percpu_usage?.length || 1;
 
   let cpuPercent = 0;
@@ -158,7 +158,7 @@ function computeStats(raw: Docker.ContainerStats): ContainerStats {
     cpuPercent = (cpuDelta / systemDelta) * cpuCount * 100;
   }
 
-  // Der Page-Cache zaehlt nicht als echter Verbrauch — genau wie bei `docker stats`.
+  // Der Page-Cache zählt nicht als echter Verbrauch — genau wie bei `docker stats`.
   const cache = raw.memory_stats.stats?.inactive_file ?? 0;
   const memUsageBytes = Math.max(0, (raw.memory_stats.usage ?? 0) - cache);
   const memLimitBytes = raw.memory_stats.limit ?? 0;
@@ -187,7 +187,7 @@ function computeStats(raw: Docker.ContainerStats): ContainerStats {
 }
 
 // ---------------------------------------------------------------------------
-// Oeffentliche Abfragen
+// Öffentliche Abfragen
 // ---------------------------------------------------------------------------
 
 export interface DockerHealth {
@@ -228,7 +228,7 @@ export async function listContainers(): Promise<ContainerItem[]> {
 
   return raw.map((c): ContainerItem => {
     const id = c.Id;
-    // Docker liefert Namen mit fuehrendem Slash.
+    // Docker liefert Namen mit führendem Slash.
     const name = c.Names?.[0]?.replace(/^\//, '') ?? id.substring(0, 12);
     const labels = c.Labels ?? {};
     const exitCode = extractExitCode(c.Status);
@@ -256,7 +256,7 @@ export async function listContainers(): Promise<ContainerItem[]> {
   });
 }
 
-/** Liest "Exited (1) 3 weeks ago" und gibt den Code zurueck. */
+/** Liest "Exited (1) 3 weeks ago" und gibt den Code zurück. */
 function extractExitCode(status: string | undefined): number | undefined {
   const match = status?.match(/Exited \((\d+)\)/);
   return match ? Number.parseInt(match[1], 10) : undefined;
@@ -285,12 +285,37 @@ export async function inspectContainer(id: string): Promise<{
   };
 }
 
-/** Einzelner Stats-Schnappschuss. Nur fuer laufende Container sinnvoll. */
+/** Einzelner Stats-Schnappschuss. Nur für laufende Container sinnvoll. */
 export async function getContainerStats(id: string): Promise<ContainerStats> {
   const raw = (await callDocker(() =>
     docker.getContainer(id).stats({ stream: false }),
   )) as unknown as Docker.ContainerStats;
   return computeStats(raw);
+}
+
+/**
+ * Stats aller laufenden Container in einem Rutsch.
+ *
+ * Ein einzelner stats-Aufruf blockiert rund eine Sekunde, weil die Engine zwei
+ * Messpunkte braucht. Parallel im Backend gesammelt kostet der gesamte Tick
+ * daher etwa so viel wie ein einzelner Container — und die UI braucht statt
+ * eines Requests pro Container nur noch einen.
+ */
+export async function getAllRunningStats(): Promise<Record<string, ContainerStats>> {
+  const running = await callDocker(() => docker.listContainers({ all: false }));
+
+  const entries = await Promise.all(
+    running.map(async (c) => {
+      try {
+        return [c.Id, await getContainerStats(c.Id)] as const;
+      } catch {
+        // Container kann zwischen list und stats beendet worden sein.
+        return null;
+      }
+    }),
+  );
+
+  return Object.fromEntries(entries.filter((e): e is NonNullable<typeof e> => e !== null));
 }
 
 export async function listImages(): Promise<DockerImage[]> {
@@ -338,7 +363,7 @@ export async function listVolumes(): Promise<DockerVolume[]> {
     callDocker(() => docker.listContainers({ all: true })),
   ]);
 
-  // Zuordnung Volume-Name -> Container-Namen ueber die Mount-Listen.
+  // Zuordnung Volume-Name -> Container-Namen über die Mount-Listen.
   const attached = new Map<string, string[]>();
   for (const c of containers) {
     const cname = c.Names?.[0]?.replace(/^\//, '') ?? c.Id.substring(0, 12);
@@ -358,7 +383,7 @@ export async function listVolumes(): Promise<DockerVolume[]> {
       scope: v.Scope ?? 'local',
       mountpoint: v.Mountpoint,
       created: v.CreatedAt ?? new Date(0).toISOString(),
-      // Groesse liefert die Engine nur mit teurem `df`-Aufruf — bewusst 0.
+      // Größe liefert die Engine nur mit teurem `df`-Aufruf — bewusst 0.
       sizeBytes: v.UsageData?.Size && v.UsageData.Size > 0 ? v.UsageData.Size : 0,
       inUse: attachedContainers.length > 0,
       attachedContainers,
@@ -369,7 +394,7 @@ export async function listVolumes(): Promise<DockerVolume[]> {
 const KNOWN_DRIVERS: DockerNetwork['driver'][] = ['bridge', 'host', 'overlay', 'macvlan', 'none'];
 
 // Die Engine liefert CreatedAt (verifiziert gegen API v1.55), @types/dockerode
-// fuehrt das Feld aber nicht. Deshalb hier nachgezogen statt blind zu casten.
+// führt das Feld aber nicht. Deshalb hier nachgezogen statt blind zu casten.
 type VolumeWithCreatedAt = Docker.VolumeInspectInfo & { CreatedAt?: string };
 
 export async function listNetworks(): Promise<DockerNetwork[]> {

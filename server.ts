@@ -22,7 +22,7 @@ async function startServer(): Promise<void> {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   } else {
-    // Vite laeuft als Middleware, damit Frontend und API denselben Port teilen.
+    // Vite läuft als Middleware, damit Frontend und API denselben Port teilen.
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -32,13 +32,13 @@ async function startServer(): Promise<void> {
   }
 
   const server = app.listen(PORT, HOST, () => {
-    console.log(`PortPilot laeuft auf http://${HOST}:${PORT}`);
+    console.log(`PortPilot läuft auf http://${HOST}:${PORT}`);
   });
 
   server.on('error', (err: NodeJS.ErrnoException) => {
     if (err.code === 'EADDRINUSE') {
       console.error(
-        `Port ${PORT} ist bereits belegt. Anderen Port waehlen: PORT=7171 npm run dev`,
+        `Port ${PORT} ist bereits belegt. Anderen Port wählen: PORT=7171 npm run dev`,
       );
       process.exit(1);
     }

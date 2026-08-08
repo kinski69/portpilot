@@ -4,6 +4,7 @@ import type { DockerSystemEvent } from '../src/types';
 import {
   DockerUnavailableError,
   docker,
+  getAllRunningStats,
   getContainerStats,
   getHealth,
   inspectContainer,
@@ -58,6 +59,9 @@ export function createApiRouter(): Router {
     handle((req) => inspectContainer(req.params.id)),
   );
 
+  // Muss vor /containers/:id/stats stehen, sonst greift die Parameter-Route.
+  router.get('/stats', handle(() => getAllRunningStats()));
+
   router.get(
     '/containers/:id/stats',
     handle((req) => getContainerStats(req.params.id)),
@@ -88,7 +92,7 @@ export function createApiRouter(): Router {
 
 /**
  * Docker multiplext stdout/stderr in einem Stream: 8-Byte-Header pro Frame,
- * Byte 0 ist der Stream-Typ, Bytes 4-7 die Laenge als Big-Endian-uint32.
+ * Byte 0 ist der Stream-Typ, Bytes 4-7 die Länge als Big-Endian-uint32.
  * Bei Containern ohne TTY muss dieser Rahmen entfernt werden.
  */
 function demuxLogs(buffer: Buffer): { stream: 'stdout' | 'stderr'; message: string }[] {
@@ -118,7 +122,7 @@ function demuxLogs(buffer: Buffer): { stream: 'stdout' | 'stderr'; message: stri
       }
     }
     offset = end;
-    // Laenge 0 wuerde sonst zur Endlosschleife fuehren.
+    // Länge 0 würde sonst zur Endlosschleife fuehren.
     if (length === 0) offset += 8;
   }
 
@@ -160,7 +164,7 @@ function streamEvents(req: Request, res: Response): void {
     if (err || !stream) {
       res.write(
         `event: error\ndata: ${JSON.stringify({
-          message: err instanceof Error ? err.message : 'Event-Stream nicht verfuegbar',
+          message: err instanceof Error ? err.message : 'Event-Stream nicht verfügbar',
         })}\n\n`,
       );
       return;
@@ -181,7 +185,7 @@ function streamEvents(req: Request, res: Response): void {
           const event = toSystemEvent(JSON.parse(line));
           if (event) res.write(`data: ${JSON.stringify(event)}\n\n`);
         } catch {
-          // Unvollstaendige oder unbekannte Zeile ueberspringen.
+          // Unvollständige oder unbekannte Zeile überspringen.
         }
       }
     });

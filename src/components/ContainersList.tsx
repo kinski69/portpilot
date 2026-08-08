@@ -1,31 +1,22 @@
 import React, { useState } from 'react';
 import {
-  Play,
   Square,
-  RotateCw,
-  Trash2,
   Terminal,
   Info,
-  ExternalLink,
   Layers,
   LayoutGrid,
   List as ListIcon,
   AlertTriangle,
-  Radio,
   Cpu,
   HardDrive
 } from 'lucide-react';
 import { ContainerItem, PortCollision } from '../types';
-import { getStatusColorClass, formatBytes } from '../utils/dockerUtils';
+import { getStatusColorClass } from '../utils/dockerUtils';
 
 interface ContainersListProps {
   containers: ContainerItem[];
   collisions: PortCollision[];
   searchQuery: string;
-  onStartContainer: (id: string) => void;
-  onStopContainer: (id: string) => void;
-  onRestartContainer: (id: string) => void;
-  onRemoveContainer: (id: string) => void;
   onSelectContainer: (container: ContainerItem, initialTab?: 'logs' | 'stats' | 'env' | 'mounts' | 'networks') => void;
   onNavigateToPortOverview: () => void;
 }
@@ -34,10 +25,6 @@ export const ContainersList: React.FC<ContainersListProps> = ({
   containers,
   collisions,
   searchQuery,
-  onStartContainer,
-  onStopContainer,
-  onRestartContainer,
-  onRemoveContainer,
   onSelectContainer,
   onNavigateToPortOverview
 }) => {
@@ -171,7 +158,7 @@ export const ContainersList: React.FC<ContainersListProps> = ({
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>Group by Compose</span>
+            <span>Nach Compose gruppieren</span>
           </button>
 
           <div className="flex items-center bg-zinc-950 p-0.5 rounded-lg border border-zinc-800">
@@ -180,7 +167,7 @@ export const ContainersList: React.FC<ContainersListProps> = ({
               className={`p-1.5 rounded-md transition ${
                 viewMode === 'grid' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
               }`}
-              title="Grid View"
+              title="Kachelansicht"
             >
               <LayoutGrid className="w-3.5 h-3.5" />
             </button>
@@ -189,7 +176,7 @@ export const ContainersList: React.FC<ContainersListProps> = ({
               className={`p-1.5 rounded-md transition ${
                 viewMode === 'table' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
               }`}
-              title="List View"
+              title="Listenansicht"
             >
               <ListIcon className="w-3.5 h-3.5" />
             </button>
@@ -204,10 +191,10 @@ export const ContainersList: React.FC<ContainersListProps> = ({
             <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
             <div>
               <div className="font-semibold text-rose-300 text-sm">
-                Port Collision Warning ({collisions.length} active conflict{collisions.length > 1 ? 's' : ''})
+                Port-Konflikt ({collisions.length} betroffene{collisions.length > 1 ? '' : 'r'} Port)
               </div>
               <p className="text-rose-300/80 mt-0.5">
-                Multiple containers are attempting to listen on the same host port. Click below to inspect and resolve host port bindings.
+                Mehrere Container binden denselben Host-Port. In der Port-Ansicht siehst du, welche.
               </p>
             </div>
           </div>
@@ -215,7 +202,7 @@ export const ContainersList: React.FC<ContainersListProps> = ({
             onClick={onNavigateToPortOverview}
             className="shrink-0 bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg font-medium transition"
           >
-            Inspect Conflicts
+            Ansehen
           </button>
         </div>
       )}
@@ -224,11 +211,11 @@ export const ContainersList: React.FC<ContainersListProps> = ({
       {filteredContainers.length === 0 ? (
         <div className="text-center py-16 bg-zinc-900/30 rounded-2xl border border-zinc-800/60 p-8 space-y-3">
           <Square className="w-10 h-10 text-zinc-600 mx-auto" />
-          <h3 className="text-zinc-300 font-semibold text-base">No containers found</h3>
+          <h3 className="text-zinc-300 font-semibold text-base">Keine Container gefunden</h3>
           <p className="text-zinc-500 text-xs max-w-sm mx-auto">
             {searchQuery
-              ? `No containers matching "${searchQuery}". Try clearing search filters.`
-              : 'No Docker containers present. Click "Run Container" above to start one.'}
+              ? `Kein Container passt zu "${searchQuery}".`
+              : 'Auf diesem Host existieren keine Container.'}
           </p>
         </div>
       ) : groupByCompose ? (
@@ -248,10 +235,6 @@ export const ContainersList: React.FC<ContainersListProps> = ({
                     key={c.id}
                     container={c}
                     collidingPorts={collidingPortsSet}
-                    onStart={() => onStartContainer(c.id)}
-                    onStop={() => onStopContainer(c.id)}
-                    onRestart={() => onRestartContainer(c.id)}
-                    onRemove={() => onRemoveContainer(c.id)}
                     onSelect={(tab) => onSelectContainer(c, tab)}
                     renderSparkline={renderSparkline}
                   />
@@ -261,10 +244,6 @@ export const ContainersList: React.FC<ContainersListProps> = ({
               <ContainerTableView
                 containers={groupItems}
                 collidingPorts={collidingPortsSet}
-                onStart={onStartContainer}
-                onStop={onStopContainer}
-                onRestart={onRestartContainer}
-                onRemove={onRemoveContainer}
                 onSelect={onSelectContainer}
               />
             )}
@@ -279,10 +258,6 @@ export const ContainersList: React.FC<ContainersListProps> = ({
                 key={c.id}
                 container={c}
                 collidingPorts={collidingPortsSet}
-                onStart={() => onStartContainer(c.id)}
-                onStop={() => onStopContainer(c.id)}
-                onRestart={() => onRestartContainer(c.id)}
-                onRemove={() => onRemoveContainer(c.id)}
                 onSelect={(tab) => onSelectContainer(c, tab)}
                 renderSparkline={renderSparkline}
               />
@@ -292,10 +267,6 @@ export const ContainersList: React.FC<ContainersListProps> = ({
           <ContainerTableView
             containers={filteredContainers}
             collidingPorts={collidingPortsSet}
-            onStart={onStartContainer}
-            onStop={onStopContainer}
-            onRestart={onRestartContainer}
-            onRemove={onRemoveContainer}
             onSelect={onSelectContainer}
           />
         )
@@ -308,10 +279,6 @@ export const ContainersList: React.FC<ContainersListProps> = ({
 interface ContainerCardProps {
   container: ContainerItem;
   collidingPorts: Set<number>;
-  onStart: () => void;
-  onStop: () => void;
-  onRestart: () => void;
-  onRemove: () => void;
   onSelect: (tab?: 'logs' | 'stats' | 'env' | 'mounts' | 'networks') => void;
   renderSparkline: (data: number[], color: string) => React.ReactNode;
 }
@@ -319,10 +286,6 @@ interface ContainerCardProps {
 const ContainerCard: React.FC<ContainerCardProps> = ({
   container,
   collidingPorts,
-  onStart,
-  onStop,
-  onRestart,
-  onRemove,
   onSelect,
   renderSparkline
 }) => {
@@ -371,7 +334,7 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
       <div className="space-y-1 text-[11px]">
         <div className="text-zinc-500 font-medium text-[10px] uppercase tracking-wider">Ports:</div>
         {container.ports.length === 0 ? (
-          <span className="text-zinc-500 italic">No published ports</span>
+          <span className="text-zinc-500 italic">Keine Ports veröffentlicht</span>
         ) : (
           <div className="flex flex-wrap gap-1">
             {container.ports.map((p, idx) => {
@@ -428,41 +391,7 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
 
       {/* Footer Action Buttons */}
       <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between text-xs">
-        <div className="flex items-center space-x-1">
-          {container.status === 'running' ? (
-            <button
-              onClick={onStop}
-              className="p-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-rose-400 transition"
-              title="Stop Container"
-            >
-              <Square className="w-3.5 h-3.5 fill-current" />
-            </button>
-          ) : (
-            <button
-              onClick={onStart}
-              className="p-1.5 rounded-md bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 transition"
-              title="Start Container"
-            >
-              <Play className="w-3.5 h-3.5 fill-current" />
-            </button>
-          )}
-
-          <button
-            onClick={onRestart}
-            className="p-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-amber-400 transition"
-            title="Restart Container"
-          >
-            <RotateCw className="w-3.5 h-3.5" />
-          </button>
-
-          <button
-            onClick={onRemove}
-            className="p-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-rose-400 transition"
-            title="Remove Container"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        <span className="font-mono text-[10px] text-zinc-600">{container.shortId}</span>
 
         <div className="flex items-center space-x-1">
           <button
@@ -478,7 +407,7 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
             className="flex items-center space-x-1 px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition text-[11px]"
           >
             <Info className="w-3 h-3 text-emerald-400" />
-            <span>Detail</span>
+            <span>Details</span>
           </button>
         </div>
       </div>
@@ -490,20 +419,12 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
 interface ContainerTableViewProps {
   containers: ContainerItem[];
   collidingPorts: Set<number>;
-  onStart: (id: string) => void;
-  onStop: (id: string) => void;
-  onRestart: (id: string) => void;
-  onRemove: (id: string) => void;
   onSelect: (container: ContainerItem, tab?: 'logs' | 'stats' | 'env' | 'mounts' | 'networks') => void;
 }
 
 const ContainerTableView: React.FC<ContainerTableViewProps> = ({
   containers,
   collidingPorts,
-  onStart,
-  onStop,
-  onRestart,
-  onRemove,
   onSelect
 }) => {
   return (
@@ -590,46 +511,12 @@ const ContainerTableView: React.FC<ContainerTableViewProps> = ({
 
                   <td className="py-2.5 px-3 text-right">
                     <div className="flex items-center justify-end space-x-1">
-                      {c.status === 'running' ? (
-                        <button
-                          onClick={() => onStop(c.id)}
-                          className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-rose-400 transition"
-                          title="Stop"
-                        >
-                          <Square className="w-3 h-3 fill-current" />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => onStart(c.id)}
-                          className="p-1 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 transition"
-                          title="Start"
-                        >
-                          <Play className="w-3 h-3 fill-current" />
-                        </button>
-                      )}
-
-                      <button
-                        onClick={() => onRestart(c.id)}
-                        className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition"
-                        title="Restart"
-                      >
-                        <RotateCw className="w-3 h-3" />
-                      </button>
-
                       <button
                         onClick={() => onSelect(c, 'logs')}
                         className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-cyan-400 transition"
-                        title="Live Logs"
+                        title="Logs anzeigen"
                       >
                         <Terminal className="w-3 h-3" />
-                      </button>
-
-                      <button
-                        onClick={() => onRemove(c.id)}
-                        className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-500 hover:text-rose-400 transition"
-                        title="Remove"
-                      >
-                        <Trash2 className="w-3 h-3" />
                       </button>
                     </div>
                   </td>

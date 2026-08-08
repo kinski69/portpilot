@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Radio, RefreshCw, Trash2, Zap } from 'lucide-react';
+import { Activity, Trash2 } from 'lucide-react';
 import { DockerSystemEvent } from '../types';
 
 interface EventsLogViewProps {
@@ -17,10 +17,10 @@ export const EventsLogView: React.FC<EventsLogViewProps> = ({
         <div>
           <h2 className="text-xl font-bold text-white flex items-center space-x-2">
             <Activity className="w-5 h-5 text-emerald-400" />
-            <span>Docker Engine Events Stream</span>
+            <span>Engine-Ereignisse</span>
           </h2>
           <p className="text-xs text-zinc-400 mt-1">
-            Real-time Push events streamed directly from Rust <code className="text-emerald-400">bollard::system::events</code> socket listener.
+            Live-Stream der Docker-Engine. Ereignisse werden gepusht, nicht abgefragt.
           </p>
         </div>
 
@@ -29,7 +29,7 @@ export const EventsLogView: React.FC<EventsLogViewProps> = ({
           className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold text-xs flex items-center space-x-1.5 transition"
         >
           <Trash2 className="w-3.5 h-3.5" />
-          <span>Clear Stream</span>
+          <span>Liste leeren</span>
         </button>
       </div>
 
@@ -37,15 +37,15 @@ export const EventsLogView: React.FC<EventsLogViewProps> = ({
         <div className="p-3 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between text-xs text-zinc-400 font-mono">
           <div className="flex items-center space-x-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span className="text-emerald-400 font-bold">Subscribed: /var/run/docker.sock</span>
+            <span className="text-emerald-400 font-bold">Abonniert: /api/events</span>
           </div>
-          <span>Total Received: {events.length}</span>
+          <span>Empfangen: {events.length}</span>
         </div>
 
         <div className="divide-y divide-zinc-800/60 font-mono text-xs">
           {events.length === 0 ? (
             <div className="text-center py-12 text-zinc-500 font-sans">
-              No engine events recorded yet. Perform container actions to stream live IPC events.
+              Noch keine Ereignisse. Sobald ein Container startet oder stoppt, erscheint es hier.
             </div>
           ) : (
             events.map(ev => (
@@ -68,9 +68,6 @@ export const EventsLogView: React.FC<EventsLogViewProps> = ({
                   </div>
                 </div>
 
-                <span className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 shrink-0">
-                  IPC &lt;1ms
-                </span>
               </div>
             ))
           )}
