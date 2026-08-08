@@ -90,6 +90,36 @@ export function createApiRouter(): Router {
   return router;
 }
 
+// Terminal-Steuerzeichen nach ECMA-48. Viele Images faerben ihre Ausgabe ein
+// (Startbanner, Log-Level); im Browser waeren das nur Zeichensalat.
+// Reihenfolge beachten: OSC endet erst bei BEL oder ST und wuerde von der
+// CSI-Regel sonst zerschnitten.
+const OSC_SEQUENCE = /\u001B\][\s\S]*?(?:\u0007|\u001B\\)/g;
+// ESC [ · Parameterbytes 0x30-0x3F · Zwischenbytes 0x20-0x2F · Endbyte 0x40-0x7E
+const CSI_SEQUENCE = /\u001B\[[0-?]*[ -\/]*[@-~]/g;
+// Einzelne Escapes wie ESC ( B (Zeichensatzwahl) oder ESC = (Tastaturmodus)
+const SINGLE_ESCAPE = /\u001B[ -\/]*[0-~]/g;
+
+/** Docker stellt jeder Zeile einen RFC3339-Zeitstempel voran. */
+const TIMESTAMP_PREFIX = /^\d{4}-\d{2}-\d{2}T\S+\s*/;
+
+/**
+ * Entfernt Steuerzeichen aus einer Logzeile.
+ * Gibt null zurueck, wenn danach nichts als der Zeitstempel uebrig bleibt —
+ * reine Farbwechsel-Zeilen tragen keine Information.
+ */
+function cleanLogLine(raw: string): string | null {
+  const text = raw
+    .replace(OSC_SEQUENCE, '')
+    .replace(CSI_SEQUENCE, '')
+    .replace(SINGLE_ESCAPE, '')
+    // BEL und Wagenruecklauf (Fortschrittsbalken ueberschreiben damit Zeilen)
+    .replace(/[\u0007\r]/g, '')
+    .trimEnd();
+
+  return text.replace(TIMESTAMP_PREFIX, '').trim() ? text : null;
+}
+
 /**
  * Docker multiplext stdout/stderr in einem Stream: 8-Byte-Header pro Frame,
  * Byte 0 ist der Stream-Typ, Bytes 4-7 die Länge als Big-Endian-uint32.
@@ -103,7 +133,8 @@ function demuxLogs(buffer: Buffer): { stream: 'stdout' | 'stderr'; message: stri
 
   if (!isMultiplexed) {
     for (const line of buffer.toString('utf8').split('\n')) {
-      if (line.trim()) lines.push({ stream: 'stdout', message: line });
+      const message = cleanLogLine(line);
+      if (message) lines.push({ stream: 'stdout', message });
     }
     return lines;
   }
@@ -117,8 +148,9 @@ function demuxLogs(buffer: Buffer): { stream: 'stdout' | 'stderr'; message: stri
     const chunk = buffer.toString('utf8', start, end);
 
     for (const line of chunk.split('\n')) {
-      if (line.trim()) {
-        lines.push({ stream: streamType === 2 ? 'stderr' : 'stdout', message: line });
+      const message = cleanLogLine(line);
+      if (message) {
+        lines.push({ stream: streamType === 2 ? 'stderr' : 'stdout', message });
       }
     }
     offset = end;
