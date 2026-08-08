@@ -291,18 +291,34 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
 }) => {
   const { badgeBg, badgeText, dotBg } = getStatusColorClass(container.status);
 
+  // Klick auf die Kachel oeffnet das Detailfenster. Markiert der Benutzer
+  // gerade Text (z.B. einen Port zum Kopieren), gilt das nicht als Klick.
+  const handleCardActivate = () => {
+    if (window.getSelection()?.toString()) return;
+    onSelect();
+  };
+
   return (
-    <div className="bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700/80 rounded-xl p-4 flex flex-col justify-between space-y-3 transition group shadow-sm shadow-zinc-950">
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Details zu ${container.name}`}
+      onClick={handleCardActivate}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+      className="bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700/80 rounded-xl p-4 flex flex-col justify-between space-y-3 transition group shadow-sm shadow-zinc-950 cursor-pointer focus:outline-none focus-visible:border-emerald-500/60 focus-visible:ring-1 focus-visible:ring-emerald-500/40"
+    >
       {/* Top Header Row */}
       <div>
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <div className="flex items-center space-x-2">
               <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${dotBg}`} />
-              <h4
-                onClick={() => onSelect()}
-                className="font-semibold text-zinc-100 text-sm truncate hover:text-emerald-400 cursor-pointer transition"
-              >
+              <h4 className="font-semibold text-zinc-100 text-sm truncate group-hover:text-emerald-400 transition">
                 {container.name}
               </h4>
             </div>
@@ -393,9 +409,14 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
       <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between text-xs">
         <span className="font-mono text-[10px] text-zinc-600">{container.shortId}</span>
 
+        {/* stopPropagation: sonst wuerde zusaetzlich der Kachel-Klick feuern
+            und den gezielt gewaehlten Tab wieder ueberschreiben. */}
         <div className="flex items-center space-x-1">
           <button
-            onClick={() => onSelect('logs')}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect('logs');
+            }}
             className="flex items-center space-x-1 px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition text-[11px]"
           >
             <Terminal className="w-3 h-3 text-cyan-400" />
@@ -403,7 +424,10 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
           </button>
 
           <button
-            onClick={() => onSelect('stats')}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect('stats');
+            }}
             className="flex items-center space-x-1 px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition text-[11px]"
           >
             <Info className="w-3 h-3 text-emerald-400" />
