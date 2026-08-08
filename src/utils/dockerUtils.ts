@@ -116,6 +116,23 @@ export function buildPortUrl(
   return `${HTTPS_PORTS.has(hostPort) ? 'https' : 'http'}://${host}:${hostPort}`;
 }
 
+/**
+ * Befehl, mit dem sich ein gestoppter Container zum Laufen bringen laesst.
+ *
+ * `docker start <name>` funktioniert für JEDEN gestoppten Container, auch
+ * ohne Compose-Projekt — Docker haelt Ports, Mounts und Netzwerke am
+ * Container-Objekt selbst, nicht am urspruenglichen Start-Kommando. Bei
+ * Compose-Containern ist `docker compose start` trotzdem vorzuziehen: es
+ * respektiert Abhaengigkeiten und Healthchecks des Projekts. Ohne bekannten
+ * Ordner (composeWorkingDir) laesst sich `cd` davor nicht sinnvoll angeben.
+ */
+export function buildStartCommand(container: ContainerItem): string {
+  if (container.composeWorkingDir && container.composeService) {
+    return `cd ${container.composeWorkingDir} && docker compose start ${container.composeService}`;
+  }
+  return `docker start ${container.name}`;
+}
+
 export function formatBytes(bytes: number, decimals = 1): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
   const k = 1024;

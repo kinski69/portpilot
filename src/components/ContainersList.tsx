@@ -8,10 +8,13 @@ import {
   List as ListIcon,
   AlertTriangle,
   Cpu,
-  HardDrive
+  HardDrive,
+  FolderOpen,
+  Copy,
+  Check
 } from 'lucide-react';
 import { ContainerItem, PortCollision } from '../types';
-import { getStatusColorClass , buildPortUrl } from '../utils/dockerUtils';
+import { getStatusColorClass, buildPortUrl, buildStartCommand } from '../utils/dockerUtils';
 import {
   sortRows,
   useSortState,
@@ -301,6 +304,50 @@ export const ContainersList: React.FC<ContainersListProps> = ({
   );
 };
 
+/**
+ * Ordner und Startbefehl fuer einen gestoppten Container, mit Kopier-Button.
+ * `docker start <name>` funktioniert immer; bei Compose-Projekten wird die
+ * Compose-Variante samt cd in den Projektordner vorgezogen (siehe
+ * buildStartCommand).
+ */
+const StartHint: React.FC<{ container: ContainerItem }> = ({ container }) => {
+  const [copied, setCopied] = useState(false);
+  const command = buildStartCommand(container);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    void navigator.clipboard.writeText(command);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <div className="space-y-1 rounded-lg border border-zinc-800/60 bg-zinc-950/60 p-2 text-[11px]">
+      {container.composeWorkingDir && (
+        <div
+          className="truncate font-mono text-zinc-500"
+          title={container.composeWorkingDir}
+        >
+          <FolderOpen className="mr-1 inline h-3 w-3 -mt-0.5 text-zinc-600" />
+          {container.composeWorkingDir}
+        </div>
+      )}
+      <button
+        onClick={handleCopy}
+        title="Startbefehl kopieren"
+        className="flex w-full items-center justify-between gap-2 rounded bg-zinc-900 px-2 py-1 font-mono text-zinc-300 transition hover:bg-zinc-800 hover:text-emerald-300"
+      >
+        <span className="truncate">{command}</span>
+        {copied ? (
+          <Check className="h-3 w-3 shrink-0 text-emerald-400" />
+        ) : (
+          <Copy className="h-3 w-3 shrink-0 text-zinc-500" />
+        )}
+      </button>
+    </div>
+  );
+};
+
 // Subcomponent: Container Card
 interface ContainerCardProps {
   container: ContainerItem;
@@ -459,6 +506,11 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
             {renderSparkline(container.stats.memoryHistory, '#06b6d4')}
           </div>
         </div>
+      )}
+
+      {/* Start-Hilfe fuer gestoppte Container: Ordner + kopierbarer Befehl */}
+      {container.status !== 'running' && container.status !== 'restarting' && (
+        <StartHint container={container} />
       )}
 
       {/* Footer Action Buttons */}
