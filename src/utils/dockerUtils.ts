@@ -90,6 +90,32 @@ export function detectPortCollisions(containers: ContainerItem[]): PortCollision
   return collisions.sort((a, b) => a.port - b.port);
 }
 
+// Ports, hinter denen ueblicherweise TLS liegt. http:// wuerde dort scheitern.
+const HTTPS_PORTS = new Set([443, 8443, 9443]);
+
+/**
+ * Adresse, unter der ein veroeffentlichter Port im Browser erreichbar ist.
+ * Gibt null zurueck, wenn ein Aufruf keinen Sinn ergibt.
+ */
+export function buildPortUrl(
+  hostIp: string,
+  hostPort: number,
+  protocol: 'tcp' | 'udp',
+): string | null {
+  // UDP spricht kein HTTP.
+  if (protocol !== 'tcp') return null;
+
+  // 0.0.0.0 und :: heissen "auf allen Interfaces lauschen" und sind keine
+  // Zieladressen — der Dienst ist ueber die Loopback-Adresse erreichbar.
+  const wildcard = hostIp === '0.0.0.0' || hostIp === '::' || hostIp === '';
+  const rawHost = wildcard ? '127.0.0.1' : hostIp;
+
+  // Nackte IPv6-Adressen muessen in einer URL in eckigen Klammern stehen.
+  const host = !wildcard && rawHost.includes(':') ? `[${rawHost}]` : rawHost;
+
+  return `${HTTPS_PORTS.has(hostPort) ? 'https' : 'http'}://${host}:${hostPort}`;
+}
+
 export function formatBytes(bytes: number, decimals = 1): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
   const k = 1024;

@@ -11,7 +11,25 @@ import {
   HardDrive
 } from 'lucide-react';
 import { ContainerItem, PortCollision } from '../types';
-import { getStatusColorClass } from '../utils/dockerUtils';
+import { getStatusColorClass , buildPortUrl } from '../utils/dockerUtils';
+import {
+  sortRows,
+  useSortState,
+  type SortState,
+  type SortValue,
+} from '../hooks/useSortableRows';
+import { SortableHeader } from './SortableHeader';
+
+type ContainerColumn = 'name' | 'status' | 'compose' | 'ports' | 'metrics';
+
+const CONTAINER_ACCESSORS: Record<ContainerColumn, (c: ContainerItem) => SortValue> = {
+  name: (c) => c.name,
+  status: (c) => c.status,
+  compose: (c) => c.composeProject ?? null,
+  // Nach dem niedrigsten veroeffentlichten Port sortieren.
+  ports: (c) => (c.ports.length ? Math.min(...c.ports.map((p) => p.hostPort)) : null),
+  metrics: (c) => (c.status === 'running' ? c.stats.cpuPercent : null),
+};
 
 interface ContainersListProps {
   containers: ContainerItem[];
@@ -34,6 +52,10 @@ export const ContainersList: React.FC<ContainersListProps> = ({
 
   // Set of ports involved in collision
   const collidingPortsSet = new Set(collisions.map(c => c.port));
+
+  // Bei Compose-Gruppierung entstehen mehrere Tabellen. Der Sortierzustand
+  // liegt deshalb hier, damit ein Klick alle Gruppen gleich sortiert.
+  const { sort, toggle } = useSortState<ContainerColumn>({ key: 'name', direction: 'asc' });
 
   // Filter containers
   const filteredContainers = containers.filter(c => {
@@ -245,6 +267,8 @@ export const ContainersList: React.FC<ContainersListProps> = ({
                 containers={groupItems}
                 collidingPorts={collidingPortsSet}
                 onSelect={onSelectContainer}
+                sort={sort}
+                onToggleSort={toggle}
               />
             )}
           </div>
@@ -268,6 +292,8 @@ export const ContainersList: React.FC<ContainersListProps> = ({
             containers={filteredContainers}
             collidingPorts={collidingPortsSet}
             onSelect={onSelectContainer}
+            sort={sort}
+            onToggleSort={toggle}
           />
         )
       )}
@@ -355,18 +381,48 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
           <div className="flex flex-wrap gap-1">
             {container.ports.map((p, idx) => {
               const isColliding = collidingPorts.has(p.hostPort);
-              return (
+              const url = buildPortUrl(p.hostIp, p.hostPort, p.protocol);
+              const reachable = url && container.status === 'running';
+
+              const style = `px-1.5 py-0.5 rounded font-mono text-[10px] flex items-center space-x-1 border ${
+                isColliding
+                  ? 'bg-rose-500/15 border-rose-500/40 text-rose-300 font-bold'
+                  : 'bg-zinc-800/80 border-zinc-700/60 text-emerald-300'
+              }`;
+              const inhalt = (
+                <>
+                  {isColliding && <AlertTriangle className="w-3 h-3 text-rose-400 shrink-0" />}
+                  <span>
+                    {p.hostPort}:{p.containerPort}
+                  </span>
+                </>
+              );
+
+              // Nur laufende TCP-Dienste verlinken. stopPropagation, damit der
+              // Klick nicht zusaetzlich das Detailfenster oeffnet.
+              return reachable ? (
+                <a
+                  key={idx}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  title={`${url} in neuem Tab öffnen`}
+                  className={`${style} hover:border-emerald-500/60 hover:bg-zinc-700/80 transition`}
+                >
+                  {inhalt}
+                </a>
+              ) : (
                 <span
                   key={idx}
-                  className={`px-1.5 py-0.5 rounded font-mono text-[10px] flex items-center space-x-1 border ${
+                  className={style}
+                  title={
                     isColliding
-                      ? 'bg-rose-500/15 border-rose-500/40 text-rose-300 font-bold animate-pulse'
-                      : 'bg-zinc-800/80 border-zinc-700/60 text-emerald-300'
-                  }`}
-                  title={isColliding ? `PORT COLLISION on host port ${p.hostPort}!` : `Mapped to host port ${p.hostPort}`}
+                      ? `Port-Konflikt auf Host-Port ${p.hostPort}`
+                      : `Host-Port ${p.hostPort} → Container-Port ${p.containerPort}`
+                  }
                 >
-                  {isColliding && <AlertTriangle className="w-3 h-3 text-rose-400 shrink-0" />}
-                  <span>{p.hostPort}:{p.containerPort}</span>
+                  {inhalt}
                 </span>
               );
             })}
@@ -444,29 +500,48 @@ interface ContainerTableViewProps {
   containers: ContainerItem[];
   collidingPorts: Set<number>;
   onSelect: (container: ContainerItem, tab?: 'logs' | 'stats' | 'env' | 'mounts' | 'networks') => void;
+  sort: SortState<ContainerColumn>;
+  onToggleSort: (key: ContainerColumn) => void;
 }
 
 const ContainerTableView: React.FC<ContainerTableViewProps> = ({
   containers,
   collidingPorts,
-  onSelect
+  onSelect,
+  sort,
+  onToggleSort
 }) => {
+  const sorted = sortRows(containers, CONTAINER_ACCESSORS, sort);
+
   return (
     <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs text-zinc-300">
           <thead className="bg-zinc-950 text-zinc-500 font-semibold border-b border-zinc-800">
             <tr>
-              <th className="py-2.5 px-3">Name & Image</th>
-              <th className="py-2.5 px-3">Status</th>
-              <th className="py-2.5 px-3">Compose Project</th>
-              <th className="py-2.5 px-3">Ports</th>
-              <th className="py-2.5 px-3">CPU / RAM</th>
-              <th className="py-2.5 px-3 text-right">Actions</th>
+              {(
+                [
+                  ['name', 'Name & Image'],
+                  ['status', 'Status'],
+                  ['compose', 'Compose-Projekt'],
+                  ['ports', 'Ports'],
+                  ['metrics', 'CPU / RAM'],
+                ] as [ContainerColumn, string][]
+              ).map(([key, label]) => (
+                <SortableHeader
+                  key={key}
+                  columnKey={key}
+                  label={label}
+                  sort={sort}
+                  onToggle={onToggleSort}
+                  className="py-2.5 px-3"
+                />
+              ))}
+              <th className="py-2.5 px-3 text-right">Aktion</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800/60">
-            {containers.map(c => {
+            {sorted.map(c => {
               const { badgeBg, badgeText, dotBg } = getStatusColorClass(c.status);
               return (
                 <tr key={c.id} className="hover:bg-zinc-800/40 transition">
@@ -497,7 +572,7 @@ const ContainerTableView: React.FC<ContainerTableViewProps> = ({
                         {c.composeProject}
                       </span>
                     ) : (
-                      <span className="text-zinc-500 italic">Standalone</span>
+                      <span className="text-zinc-500 italic">eigenständig</span>
                     )}
                   </td>
 
@@ -505,16 +580,28 @@ const ContainerTableView: React.FC<ContainerTableViewProps> = ({
                     <div className="flex flex-wrap gap-1">
                       {c.ports.map((p, idx) => {
                         const isColliding = collidingPorts.has(p.hostPort);
-                        return (
-                          <span
+                        const url = buildPortUrl(p.hostIp, p.hostPort, p.protocol);
+                        const style = `px-1.5 py-0.5 rounded font-mono text-[10px] border ${
+                          isColliding
+                            ? 'bg-rose-500/20 border-rose-500/40 text-rose-300 font-bold'
+                            : 'bg-zinc-800 border-zinc-700 text-emerald-300'
+                        }`;
+                        const text = `${p.hostPort}:${p.containerPort}`;
+
+                        return url && c.status === 'running' ? (
+                          <a
                             key={idx}
-                            className={`px-1.5 py-0.5 rounded font-mono text-[10px] border ${
-                              isColliding
-                                ? 'bg-rose-500/20 border-rose-500/40 text-rose-300 font-bold animate-pulse'
-                                : 'bg-zinc-800 border-zinc-700 text-emerald-300'
-                            }`}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={`${url} in neuem Tab öffnen`}
+                            className={`${style} hover:border-emerald-500/60 transition`}
                           >
-                            {p.hostPort}:{p.containerPort}
+                            {text}
+                          </a>
+                        ) : (
+                          <span key={idx} className={style}>
+                            {text}
                           </span>
                         );
                       })}

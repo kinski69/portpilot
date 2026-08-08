@@ -2,10 +2,24 @@ import { useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Layers, Search } from 'lucide-react';
 import type { DockerImage } from '../types';
 import { formatBytes, formatUptime } from '../utils/dockerUtils';
+import { useSortableRows, type SortValue } from '../hooks/useSortableRows';
+import { SortableHeader } from './SortableHeader';
 
 interface ImagesViewProps {
   images: DockerImage[];
 }
+
+type ImageColumn = 'repository' | 'shortId' | 'size' | 'usage' | 'created';
+
+// Sortiert wird nach dem Rohwert, nicht nach der Anzeige: Groesse nach Bytes,
+// Datum nach Zeitstempel — sonst laege "9 MB" hinter "10 GB".
+const IMAGE_ACCESSORS: Record<ImageColumn, (img: DockerImage) => SortValue> = {
+  repository: (img) => `${img.repository}:${img.tag}`,
+  shortId: (img) => img.shortId,
+  size: (img) => img.sizeBytes,
+  usage: (img) => img.containerCount,
+  created: (img) => new Date(img.created).getTime(),
+};
 
 export const ImagesView = ({ images }: ImagesViewProps) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -25,6 +39,11 @@ export const ImagesView = ({ images }: ImagesViewProps) => {
         img.shortId.toLowerCase().includes(q),
     );
   }, [images, searchQuery]);
+
+  const { sorted, sort, toggle } = useSortableRows(filteredImages, IMAGE_ACCESSORS, {
+    key: 'repository',
+    direction: 'asc',
+  });
 
   return (
     <div className="flex-1 space-y-6 overflow-y-auto p-5">
@@ -62,22 +81,35 @@ export const ImagesView = ({ images }: ImagesViewProps) => {
           <table className="w-full text-left text-xs text-zinc-300">
             <thead className="border-b border-zinc-800 bg-zinc-950 font-semibold text-zinc-500">
               <tr>
-                <th className="px-4 py-2.5">Repository & Tag</th>
-                <th className="px-4 py-2.5">Image-ID</th>
-                <th className="px-4 py-2.5">Größe</th>
-                <th className="px-4 py-2.5">Verwendung</th>
-                <th className="px-4 py-2.5">Erstellt</th>
+                {(
+                  [
+                    ['repository', 'Repository & Tag'],
+                    ['shortId', 'Image-ID'],
+                    ['size', 'Größe'],
+                    ['usage', 'Verwendung'],
+                    ['created', 'Erstellt'],
+                  ] as [ImageColumn, string][]
+                ).map(([key, label]) => (
+                  <SortableHeader
+                    key={key}
+                    columnKey={key}
+                    label={label}
+                    sort={sort}
+                    onToggle={toggle}
+                    className="px-4 py-2.5"
+                  />
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60 font-mono">
-              {filteredImages.length === 0 ? (
+              {sorted.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-10 text-center text-zinc-500">
                     Kein Image passt zum Filter.
                   </td>
                 </tr>
               ) : (
-                filteredImages.map((img) => (
+                sorted.map((img) => (
                   <tr key={img.id} className="transition hover:bg-zinc-800/40">
                     <td className="px-4 py-3 font-sans font-semibold text-zinc-100">
                       <div className="flex items-center space-x-2">

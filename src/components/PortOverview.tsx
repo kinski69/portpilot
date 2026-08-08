@@ -8,6 +8,11 @@ import {
   Filter
 } from 'lucide-react';
 import { ContainerItem, PortCollision } from '../types';
+import { buildPortUrl } from '../utils/dockerUtils';
+import { useSortableRows, type SortValue } from '../hooks/useSortableRows';
+import { SortableHeader } from './SortableHeader';
+
+type PortColumn = 'hostPort' | 'container' | 'hostIp' | 'containerPort' | 'status';
 
 interface PortOverviewProps {
   containers: ContainerItem[];
@@ -66,8 +71,6 @@ export const PortOverview: React.FC<PortOverviewProps> = ({
     });
   });
 
-  // Sort by hostPort ascending
-  occupiedPorts.sort((a, b) => a.hostPort - b.hostPort);
 
   // Filter list
   const filteredPorts = occupiedPorts.filter(item => {
@@ -80,6 +83,20 @@ export const PortOverview: React.FC<PortOverviewProps> = ({
       item.containerName.toLowerCase().includes(q) ||
       (item.composeProject || '').toLowerCase().includes(q)
     );
+  });
+
+  const PORT_ACCESSORS: Record<PortColumn, (item: OccupiedPortRecord) => SortValue> = {
+    hostPort: (item) => item.hostPort,
+    container: (item) => item.containerName,
+    hostIp: (item) => item.hostIp,
+    containerPort: (item) => item.containerPort,
+    // Konflikte zuerst, wenn aufsteigend sortiert wird.
+    status: (item) => (item.isColliding ? 0 : 1),
+  };
+
+  const { sorted, sort, toggle } = useSortableRows(filteredPorts, PORT_ACCESSORS, {
+    key: 'hostPort',
+    direction: 'asc',
   });
 
 
@@ -221,22 +238,35 @@ export const PortOverview: React.FC<PortOverviewProps> = ({
           <table className="w-full text-left text-xs text-zinc-300">
             <thead className="bg-zinc-950 text-zinc-500 font-semibold border-b border-zinc-800">
               <tr>
-                <th className="py-2.5 px-4">Host-Port</th>
-                <th className="py-2.5 px-4">Container</th>
-                <th className="py-2.5 px-4">Gebunden an</th>
-                <th className="py-2.5 px-4">Container-Port</th>
-                <th className="py-2.5 px-4">Status</th>
+                {(
+                  [
+                    ['hostPort', 'Host-Port'],
+                    ['container', 'Container'],
+                    ['hostIp', 'Gebunden an'],
+                    ['containerPort', 'Container-Port'],
+                    ['status', 'Status'],
+                  ] as [PortColumn, string][]
+                ).map(([key, label]) => (
+                  <SortableHeader
+                    key={key}
+                    columnKey={key}
+                    label={label}
+                    sort={sort}
+                    onToggle={toggle}
+                    className="py-2.5 px-4"
+                  />
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60">
-              {filteredPorts.length === 0 ? (
+              {sorted.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-zinc-500">
-                    No ports matching current search filter.
+                  <td colSpan={5} className="text-center py-10 text-zinc-500">
+                    Kein Port passt zum Filter.
                   </td>
                 </tr>
               ) : (
-                filteredPorts.map((item, idx) => {
+                sorted.map((item, idx) => {
                   const containerObj = containers.find(c => c.id === item.containerId);
 
                   return (
@@ -247,9 +277,27 @@ export const PortOverview: React.FC<PortOverviewProps> = ({
                       }`}
                     >
                       <td className="py-3 px-4 font-mono font-bold text-sm text-zinc-100">
-                        <span className={item.isColliding ? 'text-rose-400' : 'text-emerald-400'}>
-                          :{item.hostPort}
-                        </span>
+                        {(() => {
+                          const url = buildPortUrl(item.hostIp, item.hostPort, item.protocol);
+                          const reachable = url && item.containerStatus === 'running';
+                          const color = item.isColliding ? 'text-rose-400' : 'text-emerald-400';
+
+                          // Nur laufende TCP-Dienste verlinken — ein gestoppter
+                          // Container lauscht nicht, der Link liefe ins Leere.
+                          return reachable ? (
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={`${url} in neuem Tab öffnen`}
+                              className={`${color} underline decoration-dotted underline-offset-4 hover:decoration-solid`}
+                            >
+                              :{item.hostPort}
+                            </a>
+                          ) : (
+                            <span className={color}>:{item.hostPort}</span>
+                          );
+                        })()}
                         <span className="text-zinc-500 text-xs font-normal ml-1">/{item.protocol}</span>
                       </td>
 
@@ -279,7 +327,7 @@ export const PortOverview: React.FC<PortOverviewProps> = ({
                         {item.isColliding ? (
                           <span className="px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-semibold text-[10px] flex items-center space-x-1 w-fit animate-pulse">
                             <AlertTriangle className="w-3 h-3" />
-                            <span>KONFLIKT DETECTED</span>
+                            <span>KONFLIKT</span>
                           </span>
                         ) : (
                           <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] flex items-center space-x-1 w-fit">

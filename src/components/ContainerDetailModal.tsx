@@ -16,8 +16,10 @@ import {
   X,
 } from 'lucide-react';
 import { api, type ContainerDetail, type LogLine } from '../api/client';
-import type { ContainerItem } from '../types';
+import type { ContainerItem, ContainerNetwork, VolumeMount } from '../types';
 import { formatBytes, getStatusColorClass } from '../utils/dockerUtils';
+import { useSortableRows, type SortValue } from '../hooks/useSortableRows';
+import { SortableHeader } from './SortableHeader';
 
 type DetailTab = 'logs' | 'stats' | 'env' | 'mounts' | 'networks';
 
@@ -34,6 +36,29 @@ const TABS: { id: DetailTab; label: string; icon: typeof Terminal }[] = [
   { id: 'mounts', label: 'Mounts', icon: HardDrive },
   { id: 'networks', label: 'Netzwerke', icon: Network },
 ];
+
+type EnvColumn = 'key' | 'value';
+type MountColumn = 'type' | 'source' | 'destination' | 'mode';
+type NetworkColumn = 'name' | 'ip' | 'gateway' | 'mac';
+
+const ENV_ACCESSORS: Record<EnvColumn, (e: [string, string]) => SortValue> = {
+  key: ([k]) => k,
+  value: ([, v]) => v,
+};
+
+const MOUNT_ACCESSORS: Record<MountColumn, (m: VolumeMount) => SortValue> = {
+  type: (m) => m.type,
+  source: (m) => m.source,
+  destination: (m) => m.destination,
+  mode: (m) => m.mode,
+};
+
+const NETWORK_ACCESSORS: Record<NetworkColumn, (n: ContainerNetwork) => SortValue> = {
+  name: (n) => n.networkName,
+  ip: (n) => n.ipAddress,
+  gateway: (n) => n.gateway,
+  mac: (n) => n.macAddress,
+};
 
 /** Docker stellt jeder Zeile einen RFC3339-Zeitstempel voran. */
 function splitTimestamp(message: string): { time: string | null; text: string } {
@@ -143,7 +168,17 @@ export const ContainerDetailModal = ({
   };
 
   const { badgeBg, badgeText, dotBg } = getStatusColorClass(container.status);
-  const env = detail?.env ?? {};
+
+  const envEntries = useMemo(() => Object.entries(detail?.env ?? {}), [detail]);
+  const envSort = useSortableRows(envEntries, ENV_ACCESSORS, { key: 'key', direction: 'asc' });
+  const mountSort = useSortableRows(container.mounts, MOUNT_ACCESSORS, {
+    key: 'destination',
+    direction: 'asc',
+  });
+  const networkSort = useSortableRows(container.networks, NETWORK_ACCESSORS, {
+    key: 'name',
+    direction: 'asc',
+  });
 
   return (
     <div
@@ -365,7 +400,7 @@ export const ContainerDetailModal = ({
 
           {activeTab === 'env' && (
             <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
-              {Object.keys(env).length === 0 ? (
+              {envEntries.length === 0 ? (
                 <div className="py-10 text-center text-sm text-zinc-500">
                   {detail ? 'Keine Umgebungsvariablen gesetzt.' : 'Wird geladen…'}
                 </div>
@@ -373,13 +408,13 @@ export const ContainerDetailModal = ({
                 <table className="w-full text-left text-xs">
                   <thead className="border-b border-zinc-800 bg-zinc-950 font-semibold text-zinc-500">
                     <tr>
-                      <th className="px-4 py-2.5">Schlüssel</th>
-                      <th className="px-4 py-2.5">Wert</th>
+                      <SortableHeader columnKey="key" label="Schlüssel" sort={envSort.sort} onToggle={envSort.toggle} className="px-4 py-2.5" />
+                      <SortableHeader columnKey="value" label="Wert" sort={envSort.sort} onToggle={envSort.toggle} className="px-4 py-2.5" />
                       <th className="px-4 py-2.5 text-right">Aktion</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/60 font-mono">
-                    {Object.entries(env).map(([k, v]) => (
+                    {envSort.sorted.map(([k, v]) => (
                       <tr key={k} className="hover:bg-zinc-800/40">
                         <td className="px-4 py-2.5 font-bold text-emerald-400">{k}</td>
                         <td className="break-all px-4 py-2.5 text-zinc-300">{v}</td>
@@ -415,14 +450,20 @@ export const ContainerDetailModal = ({
                   <table className="w-full text-left text-xs">
                     <thead className="border-b border-zinc-800 bg-zinc-950 font-semibold text-zinc-500">
                       <tr>
-                        <th className="px-4 py-2.5">Typ</th>
-                        <th className="px-4 py-2.5">Quelle</th>
-                        <th className="px-4 py-2.5">Ziel im Container</th>
-                        <th className="px-4 py-2.5">Modus</th>
+                        {(
+                          [
+                            ['type', 'Typ'],
+                            ['source', 'Quelle'],
+                            ['destination', 'Ziel im Container'],
+                            ['mode', 'Modus'],
+                          ] as [MountColumn, string][]
+                        ).map(([key, label]) => (
+                          <SortableHeader key={key} columnKey={key} label={label} sort={mountSort.sort} onToggle={mountSort.toggle} className="px-4 py-2.5" />
+                        ))}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-800/60 font-mono">
-                      {container.mounts.map((m) => (
+                      {mountSort.sorted.map((m) => (
                         <tr key={`${m.source}:${m.destination}`} className="hover:bg-zinc-800/40">
                           <td className="px-4 py-2.5">
                             <span className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-bold text-cyan-400">
@@ -449,14 +490,20 @@ export const ContainerDetailModal = ({
                 <table className="w-full text-left text-xs">
                   <thead className="border-b border-zinc-800 bg-zinc-950 font-semibold text-zinc-500">
                     <tr>
-                      <th className="px-4 py-2.5">Netzwerk</th>
-                      <th className="px-4 py-2.5">IP-Adresse</th>
-                      <th className="px-4 py-2.5">Gateway</th>
-                      <th className="px-4 py-2.5">MAC-Adresse</th>
+                      {(
+                        [
+                          ['name', 'Netzwerk'],
+                          ['ip', 'IP-Adresse'],
+                          ['gateway', 'Gateway'],
+                          ['mac', 'MAC-Adresse'],
+                        ] as [NetworkColumn, string][]
+                      ).map(([key, label]) => (
+                        <SortableHeader key={key} columnKey={key} label={label} sort={networkSort.sort} onToggle={networkSort.toggle} className="px-4 py-2.5" />
+                      ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/60 font-mono">
-                    {container.networks.map((n) => (
+                    {networkSort.sorted.map((n) => (
                       <tr key={n.networkName} className="hover:bg-zinc-800/40">
                         <td className="px-4 py-2.5 font-bold text-emerald-400">{n.networkName}</td>
                         <td className="px-4 py-2.5 text-zinc-200">{n.ipAddress}</td>

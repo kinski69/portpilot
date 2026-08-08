@@ -2,10 +2,24 @@ import { useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, HardDrive, Search } from 'lucide-react';
 import type { DockerVolume } from '../types';
 import { formatBytes, formatUptime } from '../utils/dockerUtils';
+import { useSortableRows, type SortValue } from '../hooks/useSortableRows';
+import { SortableHeader } from './SortableHeader';
 
 interface VolumesViewProps {
   volumes: DockerVolume[];
 }
+
+type VolumeColumn = 'name' | 'driver' | 'size' | 'attached' | 'status' | 'created';
+
+const VOLUME_ACCESSORS: Record<VolumeColumn, (vol: DockerVolume) => SortValue> = {
+  name: (vol) => vol.name,
+  driver: (vol) => `${vol.driver} (${vol.scope})`,
+  // Ohne ermittelte Groesse als leer behandeln, damit die Striche hinten landen.
+  size: (vol) => (vol.sizeBytes > 0 ? vol.sizeBytes : null),
+  attached: (vol) => vol.attachedContainers.length,
+  status: (vol) => (vol.inUse ? 'in Benutzung' : 'ungenutzt'),
+  created: (vol) => new Date(vol.created).getTime(),
+};
 
 export const VolumesView = ({ volumes }: VolumesViewProps) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,6 +33,11 @@ export const VolumesView = ({ volumes }: VolumesViewProps) => {
       (v) => v.name.toLowerCase().includes(q) || v.mountpoint.toLowerCase().includes(q),
     );
   }, [volumes, searchQuery]);
+
+  const { sorted, sort, toggle } = useSortableRows(filteredVolumes, VOLUME_ACCESSORS, {
+    key: 'name',
+    direction: 'asc',
+  });
 
   return (
     <div className="flex-1 space-y-6 overflow-y-auto p-5">
@@ -56,23 +75,36 @@ export const VolumesView = ({ volumes }: VolumesViewProps) => {
           <table className="w-full text-left text-xs text-zinc-300">
             <thead className="border-b border-zinc-800 bg-zinc-950 font-semibold text-zinc-500">
               <tr>
-                <th className="px-4 py-2.5">Name</th>
-                <th className="px-4 py-2.5">Treiber</th>
-                <th className="px-4 py-2.5">Größe</th>
-                <th className="px-4 py-2.5">Verbundene Container</th>
-                <th className="px-4 py-2.5">Status</th>
-                <th className="px-4 py-2.5">Erstellt</th>
+                {(
+                  [
+                    ['name', 'Name'],
+                    ['driver', 'Treiber'],
+                    ['size', 'Größe'],
+                    ['attached', 'Verbundene Container'],
+                    ['status', 'Status'],
+                    ['created', 'Erstellt'],
+                  ] as [VolumeColumn, string][]
+                ).map(([key, label]) => (
+                  <SortableHeader
+                    key={key}
+                    columnKey={key}
+                    label={label}
+                    sort={sort}
+                    onToggle={toggle}
+                    className="px-4 py-2.5"
+                  />
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60 font-mono">
-              {filteredVolumes.length === 0 ? (
+              {sorted.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-10 text-center text-zinc-500">
                     Kein Volume passt zum Filter.
                   </td>
                 </tr>
               ) : (
-                filteredVolumes.map((vol) => (
+                sorted.map((vol) => (
                   <tr key={vol.name} className="transition hover:bg-zinc-800/40">
                     <td className="px-4 py-3 font-sans font-semibold text-zinc-100">
                       <div className="flex items-center space-x-2">
