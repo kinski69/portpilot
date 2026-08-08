@@ -51,7 +51,11 @@ async function startServer(): Promise<void> {
   });
 
   const shutdown = () => {
+    // server.close() wartet auf alle offenen Verbindungen — der Event-Stream
+    // in der Ereignisse-Ansicht bleibt aber absichtlich dauerhaft offen, sonst
+    // wuerde der Prozess nie beenden. closeAllConnections kappt sie hart.
     server.close(() => process.exit(0));
+    server.closeAllConnections();
   };
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
