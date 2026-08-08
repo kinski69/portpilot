@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import type { DockerSystemEvent } from '../src/types';
+// package.json ist die einzige Quelle für Version, Autor und Repo-URL —
+// AboutModal zeigt sie darum ueber /api/health statt eigener Konstanten.
+import pkg from '../package.json';
 import {
   DockerUnavailableError,
   docker,
@@ -48,7 +51,17 @@ export function createApiRouter(): Router {
     '/health',
     handle(async () => {
       const health = await getHealth();
-      return { ...health, readOnly: true, uptimeSeconds: Math.round(process.uptime()) };
+      return {
+        ...health,
+        readOnly: true,
+        uptimeSeconds: Math.round(process.uptime()),
+        app: {
+          version: pkg.version,
+          author: pkg.author,
+          license: pkg.license,
+          repositoryUrl: pkg.repository.url,
+        },
+      };
     }),
   );
 

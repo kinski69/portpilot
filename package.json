@@ -4,6 +4,12 @@
   "version": "1.0.0",
   "description": "Lokales Docker-Dashboard: Container, Ports, Images, Volumes, Networks und Live-Events des eigenen Hosts",
   "type": "module",
+  "author": "kinski69",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kinski69/portpilot"
+  },
   "engines": {
     "node": ">=20"
   },

@@ -1,4 +1,4 @@
-import { Eye, Radio, Server, X } from 'lucide-react';
+import { Eye, Github, Radio, Server, X } from 'lucide-react';
 import type { HealthInfo } from '../api/client';
 
 interface AboutModalProps {
@@ -36,7 +36,14 @@ export const AboutModal = ({ health, onClose }: AboutModalProps) => {
       >
         <div className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900 p-4">
           <div>
-            <h3 className="text-base font-bold text-white">PortPilot</h3>
+            <h3 className="text-base font-bold text-white">
+              PortPilot
+              {health?.app && (
+                <span className="ml-2 font-mono text-xs font-normal text-zinc-500">
+                  v{health.app.version}
+                </span>
+              )}
+            </h3>
             <p className="text-xs text-zinc-400">Lokales Docker-Dashboard</p>
           </div>
           <button
@@ -84,6 +91,23 @@ export const AboutModal = ({ health, onClose }: AboutModalProps) => {
               <p className="text-xs text-rose-400">{health?.error ?? 'Nicht verbunden.'}</p>
             )}
           </div>
+
+          {health?.app && (
+            <div className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-xs text-zinc-500">
+              <span>
+                © {new Date().getFullYear()} {health.app.author} · {health.app.license}
+              </span>
+              <a
+                href={health.app.repositoryUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-zinc-400 transition hover:text-emerald-400"
+              >
+                <Github className="h-3.5 w-3.5" />
+                <span>Quellcode auf GitHub</span>
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -36,6 +36,13 @@ async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+export interface AppInfo {
+  version: string;
+  author: string;
+  license: string;
+  repositoryUrl: string;
+}
+
 export interface HealthInfo {
   ok: boolean;
   socket: string;
@@ -46,6 +53,7 @@ export interface HealthInfo {
   readOnly: boolean;
   uptimeSeconds: number;
   error?: string;
+  app: AppInfo;
 }
 
 export interface ContainerDetail {
