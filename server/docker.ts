@@ -258,6 +258,7 @@ export async function listContainers(): Promise<ContainerItem[]> {
       created: new Date(c.Created * 1000).toISOString(),
       composeProject: labels['com.docker.compose.project'],
       composeService: labels['com.docker.compose.service'],
+      composeWorkingDir: labels['com.docker.compose.project.working_dir'],
       ports: mapPorts(c.Ports),
       // Env steckt nicht in der Listen-Antwort — kommt on demand via inspect.
       env: {},

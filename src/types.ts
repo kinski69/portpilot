@@ -50,6 +50,8 @@ export interface ContainerItem {
   created: string;
   composeProject?: string;
   composeService?: string;
+  /** Ordner, in dem die docker-compose.yml liegt. Nur bei Compose-Containern vorhanden. */
+  composeWorkingDir?: string;
   ports: PortMapping[];
   env: Record<string, string>;
   mounts: VolumeMount[];
