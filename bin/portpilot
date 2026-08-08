@@ -15,6 +15,7 @@ MIN_NODE_MAJOR=20
 # Aufruf aus jedem Arbeitsverzeichnis funktioniert (z.B. aus dem Anwendungsmenue).
 SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 APP_DIR="$(dirname "$(dirname "$SCRIPT_PATH")")"
+PIDFILE="$APP_DIR/.portpilot.pid"
 cd "$APP_DIR"
 
 log() { printf '\033[36m[portpilot]\033[0m %s\n' "$1"; }
@@ -41,18 +42,57 @@ if (( NODE_MAJOR < MIN_NODE_MAJOR )); then
     exit 1
 fi
 
+# --- Muss neu gebaut werden? --------------------------------------------------
+# Vor der "laeuft bereits"-Pruefung ermitteln: nach "git pull" ist dist/ sonst
+# veraltet, eine laufende alte Instanz wuerde stillschweigend weiterlaufen und
+# das Update ginge verloren — genau der Fall, den `git pull && ./bin/portpilot`
+# laut README eigentlich abdecken soll.
+needs_build=0
+if [[ ! -f dist/server.cjs || ! -f dist/index.html ]]; then
+    needs_build=1
+elif [[ -n "$(find src server server.ts index.html package.json -newer dist/server.cjs 2>/dev/null | head -1)" ]]; then
+    needs_build=1
+fi
+
 # --- Laeuft bereits eine Instanz? --------------------------------------------
-# Antwortet unter der Adresse ein PortPilot, wird nur das Fenster geoeffnet.
-if node -e '
-    const t = setTimeout(() => process.exit(1), 2000);
-    fetch(process.argv[1])
-      .then((r) => r.json())
-      .then((j) => { clearTimeout(t); process.exit(j && j.socket ? 0 : 1); })
-      .catch(() => { clearTimeout(t); process.exit(1); });
-' "${URL}/api/health" 2>/dev/null; then
-    log "Laeuft bereits auf ${URL} — oeffne Browser."
-    open_browser
-    exit 0
+instance_running() {
+    node -e '
+        const t = setTimeout(() => process.exit(1), 2000);
+        fetch(process.argv[1])
+          .then((r) => r.json())
+          .then((j) => { clearTimeout(t); process.exit(j && j.socket ? 0 : 1); })
+          .catch(() => { clearTimeout(t); process.exit(1); });
+    ' "${URL}/api/health" 2>/dev/null
+}
+
+if instance_running; then
+    if (( ! needs_build )); then
+        log "Laeuft bereits auf ${URL} — oeffne Browser."
+        open_browser
+        exit 0
+    fi
+
+    log "Laeuft bereits, aber es gibt eine neuere Version — aktualisiere…"
+    if [[ -f "$PIDFILE" ]]; then
+        OLD_PID="$(cat "$PIDFILE" 2>/dev/null || true)"
+        # /proc-Check gegen PID-Wiederverwendung: nur beenden, wenn dort
+        # wirklich noch unser eigener Prozess laeuft.
+        if [[ -n "$OLD_PID" ]] && kill -0 "$OLD_PID" 2>/dev/null \
+           && grep -qa "dist/server.cjs" "/proc/$OLD_PID/cmdline" 2>/dev/null; then
+            kill -TERM "$OLD_PID" 2>/dev/null || true
+            for _ in 1 2 3 4 5 6 7 8 9 10; do
+                kill -0 "$OLD_PID" 2>/dev/null || break
+                sleep 0.5
+            done
+        fi
+        rm -f "$PIDFILE"
+    fi
+
+    if instance_running; then
+        err "Alte Instanz reagiert nicht auf ein normales Beenden (kein .portpilot.pid von dieser Skript-Version)."
+        err "Manuell beenden und erneut versuchen:  pkill -f dist/server.cjs"
+        exit 1
+    fi
 fi
 
 # --- Belegt ein fremder Prozess den Port? ------------------------------------
@@ -103,14 +143,6 @@ fi
 # --- Abhaengigkeiten und Build ----------------------------------------------
 [[ -d node_modules ]] || { log "Installiere Abhaengigkeiten…"; npm install --no-audit --no-fund; }
 
-# Neu bauen, wenn dist fehlt oder eine Quelldatei juenger ist als das Bundle.
-needs_build=0
-if [[ ! -f dist/server.cjs || ! -f dist/index.html ]]; then
-    needs_build=1
-elif [[ -n "$(find src server server.ts index.html package.json -newer dist/server.cjs 2>/dev/null | head -1)" ]]; then
-    needs_build=1
-fi
-
 if (( needs_build )); then
     log "Baue Anwendung…"
     npm run build
@@ -118,4 +150,7 @@ fi
 
 log "Starte auf ${URL} (Socket: ${SOCKET}, Beenden mit Strg+C)"
 open_browser
+# $$ bleibt durch exec erhalten — die PID-Datei zeigt danach auf den echten
+# Server-Prozess, damit ein spaeteres Update ihn sauber beenden kann.
+echo $$ > "$PIDFILE"
 exec env NODE_ENV=production PORT="$PORT" HOST="$HOST" DOCKER_SOCKET="$SOCKET" node dist/server.cjs
