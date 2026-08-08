@@ -13,9 +13,12 @@ Endpunkte, die etwas verändern.
 
 | | |
 |---|---|
-| Node.js | 20 oder neuer |
-| Docker | laufender Daemon, erreichbar über `/var/run/docker.sock` |
-| Berechtigung | Benutzer in der Gruppe `docker` (sonst nur mit `sudo` nutzbar) |
+| Node.js | 20 oder neuer (inklusive `npm`) |
+| Docker | laufender Daemon, systemweit oder rootless |
+| Berechtigung | Lesezugriff auf den Docker-Socket |
+
+Die Docker-CLI wird **nicht** benötigt — PortPilot spricht direkt mit dem Socket.
+Ebenso wenig `curl`, `ss` oder `lsof`; alle Prüfungen laufen über Node.
 
 Gruppenzugehörigkeit prüfen:
 
@@ -31,6 +34,32 @@ sudo usermod -aG docker "$USER"
 
 Danach neu anmelden.
 
+## Installation auf einer neuen Maschine
+
+```bash
+git clone https://github.com/kinski69/portpilot.git ~/portpilot
+~/portpilot/bin/portpilot
+```
+
+Beim ersten Start installiert das Skript die Abhängigkeiten und baut die
+Anwendung. Es zeigt die Container **der Maschine, auf der es läuft** — für
+mehrere Rechner wird PortPilot auf jedem einzeln installiert.
+
+In das Anwendungsmenü eintragen:
+
+```bash
+~/portpilot/bin/install-desktop-entry
+```
+
+Aktualisieren:
+
+```bash
+cd ~/portpilot && git pull && ./bin/portpilot
+```
+
+Der Rebuild erfolgt automatisch, sobald eine Quelldatei neuer ist als das
+gebaute Bundle.
+
 ## Starten
 
 ```bash
@@ -45,6 +74,17 @@ Anderer Port:
 
 ```bash
 PORTPILOT_PORT=7171 ./bin/portpilot
+```
+
+### Rootless Docker
+
+Der Socket wird in dieser Reihenfolge gesucht: `DOCKER_SOCKET`, dann
+`DOCKER_HOST` im Format `unix://…`, dann `$XDG_RUNTIME_DIR/docker.sock`
+(rootless), zuletzt `/var/run/docker.sock`. In der Regel ist nichts zu
+konfigurieren; andernfalls:
+
+```bash
+DOCKER_SOCKET="$XDG_RUNTIME_DIR/docker.sock" ./bin/portpilot
 ```
 
 ## In das Anwendungsmenü eintragen
@@ -94,7 +134,8 @@ dockerode  ──►  /var/run/docker.sock  ──►  Docker Engine API
 |---|---|---|
 | `PORT` | `7070` | Port des Servers |
 | `HOST` | `127.0.0.1` | Bind-Adresse. Bewusst lokal — der Prozess liest den Docker-Socket |
-| `DOCKER_SOCKET` | `/var/run/docker.sock` | abweichender Socket, z. B. bei rootless Docker |
+| `DOCKER_SOCKET` | automatisch | abweichender Socket, überschreibt die Suche |
+| `DOCKER_HOST` | — | wird ausgewertet, sofern `unix://…` |
 | `PORTPILOT_PORT` | `7070` | nur für `bin/portpilot` |
 
 ## Port-Konflikte

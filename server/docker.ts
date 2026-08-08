@@ -11,9 +11,24 @@ import type {
   VolumeMount,
 } from '../src/types';
 
+/**
+ * Socket-Pfad ermitteln. Reihenfolge:
+ * 1. DOCKER_SOCKET — ausdrückliche Angabe, setzt auch bin/portpilot
+ * 2. DOCKER_HOST als unix://… — übliche Konvention bei rootless Docker
+ * 3. /var/run/docker.sock — systemweite Installation
+ */
+function resolveSocketPath(): string {
+  const explicit = process.env.DOCKER_SOCKET;
+  if (explicit) return explicit;
+
+  const dockerHost = process.env.DOCKER_HOST;
+  if (dockerHost?.startsWith('unix://')) return dockerHost.slice('unix://'.length);
+
+  return '/var/run/docker.sock';
+}
+
 // Ein einziger Client für den gesamten Prozess.
-// Socket-Pfad ist per DOCKER_SOCKET überschreibbar (z.B. rootless Docker).
-const socketPath = process.env.DOCKER_SOCKET ?? '/var/run/docker.sock';
+const socketPath = resolveSocketPath();
 const docker = new Docker({ socketPath });
 
 /** Fehler, der eine nicht erreichbare Docker-Engine von echten Bugs unterscheidet. */

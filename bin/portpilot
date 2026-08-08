@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 # PortPilot starten — baut bei Bedarf, startet den Server und oeffnet den Browser.
+#
+# Bewusst nur auf bash, Node.js und npm angewiesen. curl, ss, lsof und die
+# Docker-CLI sind auf schlanken Installationen nicht zwangslaeufig vorhanden;
+# Node ist es, weil die Anwendung ohnehin darauf laeuft.
 set -euo pipefail
 
 PORT="${PORTPILOT_PORT:-7070}"
 HOST="127.0.0.1"
 URL="http://${HOST}:${PORT}"
+MIN_NODE_MAJOR=20
 
 # Installationsverzeichnis aus dem Ort dieses Skripts ableiten, damit der
 # Aufruf aus jedem Arbeitsverzeichnis funktioniert (z.B. aus dem Anwendungsmenue).
@@ -16,36 +21,86 @@ log() { printf '\033[36m[portpilot]\033[0m %s\n' "$1"; }
 err() { printf '\033[31m[portpilot]\033[0m %s\n' "$1" >&2; }
 
 open_browser() {
-    command -v xdg-open >/dev/null 2>&1 && xdg-open "$URL" >/dev/null 2>&1 &
+    if command -v xdg-open >/dev/null 2>&1; then
+        xdg-open "$URL" >/dev/null 2>&1 &
+    else
+        log "Kein xdg-open gefunden — bitte ${URL} selbst im Browser oeffnen."
+    fi
 }
 
-# Laeuft bereits eine Instanz? Dann nur das Fenster oeffnen.
-if curl -sf --max-time 2 "${URL}/api/health" >/dev/null 2>&1; then
+# --- Node pruefen ------------------------------------------------------------
+command -v node >/dev/null 2>&1 || {
+    err "Node.js nicht gefunden. Installieren, z.B.:  sudo dnf install nodejs   |   sudo apt install nodejs npm"
+    exit 1
+}
+command -v npm >/dev/null 2>&1 || { err "npm nicht gefunden (gehoert zu Node.js)."; exit 1; }
+
+NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
+if (( NODE_MAJOR < MIN_NODE_MAJOR )); then
+    err "Node.js ${MIN_NODE_MAJOR} oder neuer noetig, gefunden: $(node -v)"
+    exit 1
+fi
+
+# --- Laeuft bereits eine Instanz? --------------------------------------------
+# Antwortet unter der Adresse ein PortPilot, wird nur das Fenster geoeffnet.
+if node -e '
+    const t = setTimeout(() => process.exit(1), 2000);
+    fetch(process.argv[1])
+      .then((r) => r.json())
+      .then((j) => { clearTimeout(t); process.exit(j && j.socket ? 0 : 1); })
+      .catch(() => { clearTimeout(t); process.exit(1); });
+' "${URL}/api/health" 2>/dev/null; then
     log "Laeuft bereits auf ${URL} — oeffne Browser."
     open_browser
     exit 0
 fi
 
-# Belegt ein fremder Prozess den Port?
-if ss -tln 2>/dev/null | awk '{print $4}' | grep -qE "[:.]${PORT}\$"; then
+# --- Belegt ein fremder Prozess den Port? ------------------------------------
+PORT_STATE="$(node -e '
+    const net = require("net");
+    const server = net.createServer();
+    server.once("error", (e) => { console.log(e.code === "EADDRINUSE" ? "busy" : "free"); process.exit(0); });
+    server.once("listening", () => server.close(() => console.log("free")));
+    server.listen(Number(process.argv[1]), "127.0.0.1");
+' "$PORT")"
+
+if [[ "$PORT_STATE" == "busy" ]]; then
     err "Port ${PORT} ist belegt, aber es antwortet kein PortPilot."
     err "Anderen Port waehlen:  PORTPILOT_PORT=7171 $0"
     exit 1
 fi
 
-# Docker erreichbar?
-if [[ ! -S /var/run/docker.sock ]]; then
-    err "Docker-Socket nicht gefunden. Daemon starten:  sudo systemctl start docker"
-    exit 1
-fi
-if ! docker info >/dev/null 2>&1; then
-    err "Kein Zugriff auf die Docker-Engine."
-    err "Daemon starten (sudo systemctl start docker) oder Benutzer in die Gruppe 'docker' aufnehmen."
+# --- Docker-Socket finden ----------------------------------------------------
+# Reihenfolge: ausdrueckliche Angabe, DOCKER_HOST, rootless, systemweit.
+find_socket() {
+    [[ -n "${DOCKER_SOCKET:-}" ]] && { echo "$DOCKER_SOCKET"; return; }
+    [[ "${DOCKER_HOST:-}" == unix://* ]] && { echo "${DOCKER_HOST#unix://}"; return; }
+    local candidate
+    for candidate in "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/docker.sock" /var/run/docker.sock; do
+        [[ -S "$candidate" ]] && { echo "$candidate"; return; }
+    done
+    echo ""
+}
+
+SOCKET="$(find_socket)"
+
+if [[ -z "$SOCKET" || ! -S "$SOCKET" ]]; then
+    err "Kein Docker-Socket gefunden."
+    err "Daemon starten:  sudo systemctl start docker"
+    err "Rootless Docker:  systemctl --user start docker"
+    err "Abweichender Pfad:  DOCKER_SOCKET=/pfad/zu/docker.sock $0"
     exit 1
 fi
 
-command -v node >/dev/null 2>&1 || { err "Node.js nicht gefunden."; exit 1; }
+# Lesbarkeit statt 'docker info' pruefen — die Docker-CLI muss nicht
+# installiert sein, PortPilot spricht direkt mit dem Socket.
+if [[ ! -r "$SOCKET" ]]; then
+    err "Keine Berechtigung fuer ${SOCKET}."
+    err "Benutzer in die Gruppe aufnehmen:  sudo usermod -aG docker \"\$USER\"  (danach neu anmelden)"
+    exit 1
+fi
 
+# --- Abhaengigkeiten und Build ----------------------------------------------
 [[ -d node_modules ]] || { log "Installiere Abhaengigkeiten…"; npm install --no-audit --no-fund; }
 
 # Neu bauen, wenn dist fehlt oder eine Quelldatei juenger ist als das Bundle.
@@ -56,11 +111,11 @@ elif [[ -n "$(find src server server.ts index.html package.json -newer dist/serv
     needs_build=1
 fi
 
-if [[ $needs_build -eq 1 ]]; then
+if (( needs_build )); then
     log "Baue Anwendung…"
     npm run build
 fi
 
-log "Starte auf ${URL} (Beenden mit Strg+C)"
+log "Starte auf ${URL} (Socket: ${SOCKET}, Beenden mit Strg+C)"
 open_browser
-exec env NODE_ENV=production PORT="$PORT" HOST="$HOST" node dist/server.cjs
+exec env NODE_ENV=production PORT="$PORT" HOST="$HOST" DOCKER_SOCKET="$SOCKET" node dist/server.cjs
