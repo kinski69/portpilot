@@ -9,6 +9,15 @@ Endpunkte, die etwas verändern.
 
 ![PortPilot Screenshot](assets/port_pilot_screenshot1.png)
 
+## Kernfeatures
+
+- Live-Container-Liste mit Status-Anzeige
+- Container-Logs (ANSI-Steuerzeichen bereinigt)
+- Port-Mapping anzeigen + Kopieren
+- Schnell-Befehle: Start, Stop, Restart, Remove
+- Docker Compose Projekt-Befehle
+- Responsive Web-UI
+
 ---
 
 ## Voraussetzungen
@@ -87,6 +96,12 @@ konfigurieren; andernfalls:
 
 ```bash
 DOCKER_SOCKET="$XDG_RUNTIME_DIR/docker.sock" ./bin/portpilot
+```
+
+Funktioniert ebenso mit **Podman** über dessen Docker-kompatiblen Socket:
+
+```bash
+DOCKER_SOCKET="$XDG_RUNTIME_DIR/podman/podman.sock" ./bin/portpilot
 ```
 
 ## In das Anwendungsmenü eintragen
