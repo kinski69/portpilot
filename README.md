@@ -7,6 +7,8 @@ Port-Konflikte zu finden, bevor sie einen Start scheitern lassen.
 **Nur lesend.** PortPilot startet, stoppt oder löscht nichts. Es gibt keine
 Endpunkte, die etwas verändern.
 
+![PortPilot Screenshot](assets/port_pilot_screenshot1.png)
+
 ---
 
 ## Voraussetzungen
