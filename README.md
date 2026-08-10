@@ -25,12 +25,24 @@ inklusive Belegungsraster für die üblichen Verdächtigen:
 
 ## Kernfeatures
 
-- Live-Container-Liste mit Status-Anzeige
-- Container-Logs (ANSI-Steuerzeichen bereinigt)
-- Port-Mapping anzeigen + Kopieren
-- Schnell-Befehle: Start, Stop, Restart, Remove
-- Docker Compose Projekt-Befehle
-- Responsive Web-UI
+- **Übersicht** — Kennzahlen, Anteil aktiver Dienste, Hostlast, Container-Kacheln
+- **Container** — Liste als Kachel- oder Tabellenansicht, nach Compose-Projekt gruppiert,
+  Filter nach Status und Volltextsuche über Name, Image, Projekt und Port
+- **Port-Konflikte** — alle veröffentlichten Host-Ports quer über alle Projekte,
+  Konflikterkennung inklusive Wildcard-Bindungen, Raster der üblichen Ports
+- **Detailfenster** je Container — Logs (ANSI-Steuerzeichen bereinigt, filterbar,
+  als Datei speicherbar), Messwerte mit Verlauf, Umgebungsvariablen, Mounts, Netzwerke
+- **Images, Volumes, Netzwerke** — sortierbare Tabellen mit Markierung für
+  ungenutzte und `dangling`-Einträge
+- **Ereignisse** — Live-Strom der Engine über Server-Sent Events, kein Polling
+- **Handreichungen** — veröffentlichte Ports als Link in den Browser, Startbefehl
+  gestoppter Container in die Zwischenablage
+- Responsive Web-UI, ohne externe Dienste, alles lokal
+
+**Was PortPilot nicht tut:** starten, stoppen, neu starten, löschen oder prunen.
+Der Server stellt ausschließlich `GET`-Endpunkte bereit. Zum Steuern der Container
+bleibt `docker` bzw. `docker compose` zuständig — den passenden Startbefehl legt
+PortPilot dir auf Wunsch in die Zwischenablage.
 
 ## Neu in V1.1
 
@@ -49,7 +61,7 @@ inklusive Belegungsraster für die üblichen Verdächtigen:
 | | |
 |---|---|
 | Node.js | 20 oder neuer (inklusive `npm`) |
-| Docker | laufender Daemon, systemweit oder rootless |
+| Docker | laufender Daemon, systemweit oder rootless — alternativ Podman über seinen Docker-kompatiblen Socket |
 | Berechtigung | Lesezugriff auf den Docker-Socket |
 
 Die Docker-CLI wird **nicht** benötigt — PortPilot spricht direkt mit dem Socket.
@@ -80,11 +92,8 @@ Beim ersten Start installiert das Skript die Abhängigkeiten und baut die
 Anwendung. Es zeigt die Container **der Maschine, auf der es läuft** — für
 mehrere Rechner wird PortPilot auf jedem einzeln installiert.
 
-In das Anwendungsmenü eintragen:
-
-```bash
-~/portpilot/bin/install-desktop-entry
-```
+Einen Eintrag im Anwendungsmenü legt `bin/install-desktop-entry` an — siehe
+[In das Anwendungsmenü eintragen](#in-das-anwendungsmenü-eintragen).
 
 Aktualisieren:
 
@@ -193,10 +202,13 @@ demselben Port.
 
 ## Grenzen
 
-- **Volume-Größen** werden nicht angezeigt. Die Engine liefert sie nur über einen
-  teuren `df`-Aufruf; statt eines erfundenen Werts steht dort `—`.
-- **Logs** werden alle 5 Sekunden nachgeladen, nicht als Dauerstream.
+- **Volume-Größen** bleiben meist leer. Die Engine liefert sie nur über einen teuren
+  `df`-Aufruf; ohne diese Angabe steht dort `—` statt eines erfundenen Werts.
+- **Logs** werden alle 5 Sekunden nachgeladen, nicht als Dauerstream. Messwerte
+  laufen im 3-Sekunden-Takt und lassen sich in der Kopfzeile pausieren.
 - **Keine Schreibaktionen.** Container steuern weiterhin über `docker` oder `docker compose`.
+- **Ein Host je Instanz.** PortPilot zeigt den Rechner, auf dem es läuft — kein
+  Sammel-Dashboard über mehrere Maschinen.
 
 ## Lizenz
 
