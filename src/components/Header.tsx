@@ -40,7 +40,12 @@ export const Header = ({
           <div className="leading-tight">
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold tracking-tight text-zinc-100">PortPilot</span>
-              <span className="pp-pill border-zinc-700 text-zinc-400">v2</span>
+              {/* Fassung kommt aus package.json über /api/health — keine zweite Quelle. */}
+              {health?.app?.version && (
+                <span className="pp-pill border-zinc-700 text-zinc-400">
+                  v{health.app.version}
+                </span>
+              )}
             </div>
             <button
               onClick={onOpenAbout}
