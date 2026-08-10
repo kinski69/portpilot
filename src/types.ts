@@ -120,4 +120,11 @@ export interface DockerSystemEvent {
   details: string;
 }
 
-export type ActiveTab = 'containers' | 'ports' | 'images' | 'volumes' | 'networks' | 'events';
+export type ActiveTab =
+  | 'dashboard'
+  | 'containers'
+  | 'ports'
+  | 'images'
+  | 'volumes'
+  | 'networks'
+  | 'events';

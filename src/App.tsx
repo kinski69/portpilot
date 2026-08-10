@@ -13,11 +13,12 @@ import { VolumesView } from './components/VolumesView';
 import { NetworksView } from './components/NetworksView';
 import { EventsLogView } from './components/EventsLogView';
 import { AboutModal } from './components/AboutModal';
+import { DashboardView } from './components/DashboardView';
 
 export type DetailTab = 'logs' | 'stats' | 'env' | 'mounts' | 'networks';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('containers');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAbout, setShowAbout] = useState(false);
 
@@ -105,7 +106,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-zinc-950 font-sans text-zinc-100 antialiased">
+    <div className="flex h-screen w-screen flex-col overflow-hidden font-sans text-zinc-100 antialiased">
       <Header
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -135,7 +136,20 @@ export default function App() {
           onOpenAbout={() => setShowAbout(true)}
         />
 
-        <main className="flex flex-1 flex-col overflow-hidden bg-zinc-950">
+        <main className="flex flex-1 flex-col overflow-hidden">
+          {activeTab === 'dashboard' && (
+            <DashboardView
+              containers={containers}
+              images={images}
+              volumes={volumes}
+              networks={networks}
+              events={events}
+              collisions={collisions}
+              onSelectContainer={(c) => handleSelectContainer(c, 'stats')}
+              onNavigate={setActiveTab}
+            />
+          )}
+
           {activeTab === 'containers' && (
             <ContainersList
               containers={containers}

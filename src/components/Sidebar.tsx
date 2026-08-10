@@ -7,7 +7,9 @@ import {
   Radio,
   Activity,
   Info,
-  Server
+  Server,
+  LayoutDashboard,
+  ShieldCheck,
 } from 'lucide-react';
 import { ActiveTab } from '../types';
 
@@ -25,6 +27,15 @@ interface SidebarProps {
   onOpenAbout: () => void;
 }
 
+type NavItem = {
+  id: ActiveTab;
+  label: string;
+  hint: string;
+  icon: typeof Box;
+  badge: string | null;
+  badgeClass: string;
+};
+
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
@@ -36,59 +47,76 @@ export const Sidebar: React.FC<SidebarProps> = ({
   volumeCount,
   danglingVolumeCount,
   networkCount,
-  onOpenAbout
+  onOpenAbout,
 }) => {
-  const navItems = [
+  const neutralBadge = 'text-zinc-400 border-zinc-800 bg-zinc-900';
+  const goodBadge = 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10';
+  const warnBadge = 'text-amber-300 border-amber-500/30 bg-amber-500/10';
+  const badBadge = 'text-rose-300 border-rose-500/40 bg-rose-500/15 animate-pulse';
+
+  const navItems: NavItem[] = [
     {
-      id: 'containers' as ActiveTab,
+      id: 'dashboard',
+      label: 'Übersicht',
+      hint: 'Lage auf einen Blick',
+      icon: LayoutDashboard,
+      badge: null,
+      badgeClass: neutralBadge,
+    },
+    {
+      id: 'containers',
       label: 'Container',
+      hint: 'Dienste und Zustand',
       icon: Box,
       badge: `${runningCount}/${containerCount}`,
-      badgeColor: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+      badgeClass: goodBadge,
     },
     {
-      id: 'ports' as ActiveTab,
+      id: 'ports',
       label: 'Ports',
+      hint: 'Belegung und Konflikte',
       icon: Radio,
-      badge: collisionCount > 0 ? `${collisionCount} Konflikt${collisionCount > 1 ? 'e' : ''}` : null,
-      badgeColor: collisionCount > 0 ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30 animate-pulse font-bold' : ''
+      badge: collisionCount > 0 ? `${collisionCount} Konflikt${collisionCount > 1 ? 'e' : ''}` : 'frei',
+      badgeClass: collisionCount > 0 ? badBadge : neutralBadge,
     },
     {
-      id: 'images' as ActiveTab,
+      id: 'images',
       label: 'Images',
+      hint: 'Abbilder auf dem Host',
       icon: Layers,
       badge: danglingImageCount > 0 ? `${danglingImageCount} ungenutzt` : `${imageCount}`,
-      badgeColor: danglingImageCount > 0 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-zinc-800 text-zinc-400'
+      badgeClass: danglingImageCount > 0 ? warnBadge : neutralBadge,
     },
     {
-      id: 'volumes' as ActiveTab,
+      id: 'volumes',
       label: 'Volumes',
+      hint: 'Dauerhafte Daten',
       icon: HardDrive,
       badge: danglingVolumeCount > 0 ? `${danglingVolumeCount} ungenutzt` : `${volumeCount}`,
-      badgeColor: danglingVolumeCount > 0 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-zinc-800 text-zinc-400'
+      badgeClass: danglingVolumeCount > 0 ? warnBadge : neutralBadge,
     },
     {
-      id: 'networks' as ActiveTab,
+      id: 'networks',
       label: 'Netzwerke',
+      hint: 'Bridges und Subnetze',
       icon: Network,
       badge: `${networkCount}`,
-      badgeColor: 'bg-zinc-800 text-zinc-400'
+      badgeClass: neutralBadge,
     },
     {
-      id: 'events' as ActiveTab,
+      id: 'events',
       label: 'Ereignisse',
+      hint: 'Live-Strom der Engine',
       icon: Activity,
       badge: 'Live',
-      badgeColor: 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
-    }
+      badgeClass: 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10',
+    },
   ];
 
   return (
-    <aside className="w-56 bg-zinc-950/90 border-r border-zinc-800/80 flex flex-col justify-between select-none">
-      <div className="p-3 space-y-1">
-        <div className="px-3 py-2 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
-          Übersicht
-        </div>
+    <aside className="flex w-64 flex-none select-none flex-col justify-between gap-3 border-r border-zinc-800/60 bg-zinc-950/60 p-3">
+      <div className="space-y-2 overflow-y-auto">
+        <p className="pp-eyebrow px-1 pb-1 pt-2">Navigation</p>
 
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -98,21 +126,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition ${
-                isActive
-                  ? 'bg-zinc-800/90 text-white shadow-sm shadow-zinc-950 border border-zinc-700/60'
-                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/60'
-              }`}
+              data-active={isActive}
+              className="pp-nav-box"
             >
-              <div className="flex items-center space-x-2.5">
-                <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 'text-zinc-400'}`} />
-                <span>{item.label}</span>
-              </div>
+              <span className="pp-nav-icon">
+                <Icon className={`h-4 w-4 ${isActive ? 'text-emerald-300' : 'text-zinc-400'}`} />
+              </span>
+
+              <span className="min-w-0 flex-1">
+                <span
+                  className={`block truncate text-[13px] font-semibold ${
+                    isActive ? 'text-zinc-100' : 'text-zinc-300'
+                  }`}
+                >
+                  {item.label}
+                </span>
+                <span className="block truncate text-[10.5px] text-zinc-500">{item.hint}</span>
+              </span>
 
               {item.badge && (
-                <span className={`px-1.5 py-0.5 rounded text-[10px] ${item.badgeColor}`}>
-                  {item.badge}
-                </span>
+                <span className={`pp-pill flex-none border ${item.badgeClass}`}>{item.badge}</span>
               )}
             </button>
           );
@@ -120,28 +153,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Fusszeile: Verbindungsart und Info */}
-      <div className="p-3 border-t border-zinc-800/60">
-        <div className="bg-zinc-900/70 border border-zinc-800 rounded-lg p-2.5 space-y-2">
-          <div className="flex items-center justify-between text-xs text-zinc-300 font-medium">
-            <div className="flex items-center space-x-1.5">
-              <Server className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Docker-Socket</span>
-            </div>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+      <div className="pp-card space-y-2.5 p-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-semibold text-zinc-200">
+            <Server className="h-3.5 w-3.5 text-emerald-300" />
+            <span>Docker-Socket</span>
           </div>
-
-          <p className="text-[11px] text-zinc-400 leading-relaxed">
-            Nur lesender Zugriff auf <code className="text-zinc-300">docker.sock</code>.
-          </p>
-
-          <button
-            onClick={onOpenAbout}
-            className="w-full text-left text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center space-x-1 font-medium transition pt-1 border-t border-zinc-800"
-          >
-            <Info className="w-3 h-3" />
-            <span>Über PortPilot</span>
-          </button>
+          <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_2px] shadow-emerald-500/40" />
         </div>
+
+        <div className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950/60 px-2 py-1.5">
+          <ShieldCheck className="h-3.5 w-3.5 flex-none text-cyan-300" />
+          <p className="text-[10.5px] leading-snug text-zinc-400">
+            Nur lesender Zugriff auf <code className="text-zinc-300">docker.sock</code>
+          </p>
+        </div>
+
+        <button
+          onClick={onOpenAbout}
+          className="flex w-full items-center gap-1.5 border-t border-zinc-800 pt-2 text-[11px] font-medium text-emerald-300 transition hover:text-emerald-200"
+        >
+          <Info className="h-3 w-3" />
+          <span>Über PortPilot</span>
+        </button>
       </div>
     </aside>
   );
