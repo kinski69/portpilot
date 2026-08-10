@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Square,
   Terminal,
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { ContainerItem, PortCollision } from '../types';
 import { getStatusColorClass, buildPortUrl, buildStartCommand } from '../utils/dockerUtils';
+import { copyText } from '../utils/clipboard';
 import {
   sortRows,
   useSortState,
@@ -311,14 +312,27 @@ export const ContainersList: React.FC<ContainersListProps> = ({
  * buildStartCommand).
  */
 const StartHint: React.FC<{ container: ContainerItem }> = ({ container }) => {
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<'idle' | 'ok' | 'failed'>('idle');
   const command = buildStartCommand(container);
 
-  const handleCopy = (e: React.MouseEvent) => {
+  const commandRef = useRef<HTMLSpanElement>(null);
+
+  const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    void navigator.clipboard.writeText(command);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    const ok = await copyText(command);
+    setCopyState(ok ? 'ok' : 'failed');
+
+    // Blockiert der Browser die Zwischenablage, wenigstens den Befehl
+    // markieren — dann reicht Strg+C.
+    if (!ok && commandRef.current) {
+      const range = document.createRange();
+      range.selectNodeContents(commandRef.current);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    }
+
+    setTimeout(() => setCopyState('idle'), ok ? 1500 : 2500);
   };
 
   return (
@@ -334,12 +348,20 @@ const StartHint: React.FC<{ container: ContainerItem }> = ({ container }) => {
       )}
       <button
         onClick={handleCopy}
-        title="Startbefehl kopieren"
+        title={
+          copyState === 'failed'
+            ? 'Kopieren blockiert — Befehl von Hand markieren'
+            : 'Startbefehl kopieren'
+        }
         className="flex w-full items-center justify-between gap-2 rounded bg-zinc-900 px-2 py-1 font-mono text-zinc-300 transition hover:bg-zinc-800 hover:text-emerald-300"
       >
-        <span className="truncate">{command}</span>
-        {copied ? (
+        <span ref={commandRef} className="truncate select-text">
+          {command}
+        </span>
+        {copyState === 'ok' ? (
           <Check className="h-3 w-3 shrink-0 text-emerald-400" />
+        ) : copyState === 'failed' ? (
+          <AlertTriangle className="h-3 w-3 shrink-0 text-rose-400" />
         ) : (
           <Copy className="h-3 w-3 shrink-0 text-zinc-500" />
         )}

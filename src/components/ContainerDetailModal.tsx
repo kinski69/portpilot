@@ -18,6 +18,7 @@ import {
 import { api, type ContainerDetail, type LogLine } from '../api/client';
 import type { ContainerItem, ContainerNetwork, VolumeMount } from '../types';
 import { formatBytes, getStatusColorClass } from '../utils/dockerUtils';
+import { copyText } from '../utils/clipboard';
 import { useSortableRows, type SortValue } from '../hooks/useSortableRows';
 import { SortableHeader } from './SortableHeader';
 
@@ -150,8 +151,9 @@ export const ContainerDetailModal = ({
     }
   }, [filteredLogs, autoScroll, activeTab]);
 
-  const handleCopy = (text: string, key: string) => {
-    void navigator.clipboard.writeText(text);
+  const handleCopy = async (text: string, key: string) => {
+    const ok = await copyText(text);
+    if (!ok) return;
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 1500);
   };
@@ -420,7 +422,7 @@ export const ContainerDetailModal = ({
                         <td className="break-all px-4 py-2.5 text-zinc-300">{v}</td>
                         <td className="px-4 py-2.5 text-right">
                           <button
-                            onClick={() => handleCopy(`${k}=${v}`, k)}
+                            onClick={() => void handleCopy(`${k}=${v}`, k)}
                             className="rounded bg-zinc-800 p-1 text-zinc-300 transition hover:bg-zinc-700"
                             aria-label={`${k} kopieren`}
                           >
