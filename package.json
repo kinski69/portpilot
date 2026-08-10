@@ -1,7 +1,7 @@
 {
   "name": "portpilot",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Lokales Docker-Dashboard: Container, Ports, Images, Volumes, Networks und Live-Events des eigenen Hosts",
   "type": "module",
   "author": "kinski69",

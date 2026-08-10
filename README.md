@@ -7,7 +7,21 @@ Port-Konflikte zu finden, bevor sie einen Start scheitern lassen.
 **Nur lesend.** PortPilot startet, stoppt oder löscht nichts. Es gibt keine
 Endpunkte, die etwas verändern.
 
-![PortPilot Screenshot](assets/port_pilot_screenshot1.png)
+## Oberfläche (V1.1)
+
+**Übersicht** — Lagebericht, Kennzahlen-Boxen, Auslastungsring, Hostlast und
+Container-Kacheln mit CPU-Verlauf:
+
+![PortPilot — Übersicht](assets/v11-uebersicht.png)
+
+**Ports & Konflikte** — alle veröffentlichten Host-Ports quer über alle Projekte,
+inklusive Belegungsraster für die üblichen Verdächtigen:
+
+![PortPilot — Ports und Konflikte](assets/v11-ports.png)
+
+**Images** — lokal vorhandene Abbilder mit Größe, Verwendung und `dangling`-Markierung:
+
+![PortPilot — Images](assets/v11-images.png)
 
 ## Kernfeatures
 
@@ -17,6 +31,16 @@ Endpunkte, die etwas verändern.
 - Schnell-Befehle: Start, Stop, Restart, Remove
 - Docker Compose Projekt-Befehle
 - Responsive Web-UI
+
+## Neu in V1.1
+
+- **Neue Startseite „Übersicht"** — Lagebericht, sechs klickbare Kennzahlen-Boxen,
+  Ring für den Anteil aktiver Dienste, Hostlast-Verlauf, Container-Kacheln
+- **Neues Design** — Palette „Deep Harbor" (Tiefsee-Blau mit Grün/Cyan als Akzent),
+  Karten mit Lichtsaum, Menuboxen mit Icon-Kachel und Statusbadge in der Navigation
+- **Kopieren in die Zwischenablage repariert** — Fehler wurden bisher verschluckt und
+  fälschlich als Erfolg angezeigt; jetzt mit Rückfallebene, Warnhinweis und
+  automatischer Markierung des Befehls
 
 ---
 
