@@ -1,65 +1,99 @@
 @import "tailwindcss";
 
 /* =========================================================================
-   PortPilot V2 — Design-System "Deep Harbor"
-   Die Zinc-Skala wird bewusst auf eine Tiefsee-Palette umgemappt: dadurch
-   uebernehmen alle bestehenden Ansichten die neue Optik ohne Einzelumbau.
+   PortPilot V4 — Design-System "Omarchy" (exakte Tokens)
+   Rollen aus der laufenden Shell (btop.theme + shell.toml + Color.qml):
+   main_bg #101913 überall (Boxen trennen OUTLINES, keine Flächen),
+   outlines/divider muted #4a684a, selected #28302b, Text #a1af9c,
+   Akzent #4a9a68, Warnung #c87a5c. Flach: keine Schatten, keine Verläufe.
+   Farben zur LAUFZEIT aus dem aktiven Omarchy-Theme (/api/theme);
+   Defaults = Evergreen.
    ========================================================================= */
 
 @theme {
-  /* Grundflaechen ------------------------------------------------------- */
-  --color-zinc-950: #06141b; /* Seitenhintergrund */
-  --color-zinc-900: #0b2029; /* Panel / Karte */
-  --color-zinc-800: #14384a; /* Rahmen, erhoehte Flaechen */
-  --color-zinc-700: #1c4a60; /* Rahmen aktiv */
-  --color-zinc-600: #2a6076; /* Trennlinien hell */
-  --color-zinc-500: #628ea0; /* gedaempfter Text */
-  --color-zinc-400: #93b4c2; /* Sekundaertext */
-  --color-zinc-300: #c0d8e2; /* Primaertext gedaempft */
-  --color-zinc-200: #dcecf2; /* Primaertext */
-  --color-zinc-100: #edf7fa; /* Ueberschriften */
+  /* Grundflaechen (Rollen, keine festen Farben) -------------------------- */
+  --color-zinc-950: var(--om-bg, #101913); /* Seite + Panels (main_bg) */
+  --color-zinc-900: var(--om-bg, #101913); /* Karten (main_bg) */
+  --color-zinc-800: var(--om-bg-light, #28302b); /* Rahmen, selected_bg */
+  --color-zinc-700: var(--om-muted, #4a684a); /* Rahmen aktiv, div_line */
+  --color-zinc-600: var(--om-muted, #4a684a); /* Linien, matt */
+  --color-zinc-500: var(--om-fg-dim, #798375); /* Text matt */
+  --color-zinc-400: var(--om-fg, #a1af9c); /* Text sekundaer */
+  --color-zinc-300: var(--om-fg-light, #afbbab); /* Text */
+  --color-zinc-200: var(--om-fg-bright, #b9c3b5); /* Text hell */
+  --color-zinc-100: var(--om-fg-bright, #b9c3b5); /* Ueberschriften */
 
-  /* Statusfarben --------------------------------------------------------- */
-  --color-emerald-300: #6ff0b8;
-  --color-emerald-400: #3ddc97;
-  --color-emerald-500: #16c47f;
-  --color-emerald-600: #0ea06a;
+  /* Statusfarben (aus dem Theme, mit Evergreen-Fallback) ------------------ */
+  --color-emerald-300: var(--om-b-green, #82c45a);
+  --color-emerald-400: var(--om-green, #6aae52);
+  --color-emerald-500: var(--om-accent, #4a9a68);
+  --color-emerald-600: var(--om-accent, #4a9a68);
 
-  --color-rose-300: #ffb3b3;
-  --color-rose-400: #ff8a8a;
-  --color-rose-500: #f56565;
-  --color-rose-600: #dc4c4c;
+  --color-rose-300: var(--om-b-red, #d89268);
+  --color-rose-400: var(--om-orange, #d08e74);
+  --color-rose-500: var(--om-red, #c87a5c);
+  --color-rose-600: var(--om-red, #c87a5c);
 
-  --color-amber-300: #ffd98a;
-  --color-amber-400: #fcc44f;
-  --color-amber-500: #e5a41f;
+  --color-amber-300: var(--om-b-yellow, #d4ba60);
+  --color-amber-400: var(--om-yellow, #c4a64e);
+  --color-amber-500: var(--om-yellow, #c4a64e);
 
-  --color-cyan-300: #7fe4f5;
-  --color-cyan-400: #45cfe8;
-  --color-cyan-500: #1fb4d0;
+  --color-cyan-300: var(--om-b-cyan, #48aa82);
+  --color-cyan-400: var(--om-cyan, #52987a);
+  --color-cyan-500: var(--om-cyan, #52987a);
 
-  --color-blue-300: #9ec8ff;
-  --color-blue-400: #6cabff;
-  --color-blue-500: #3d8bf5;
+  --color-blue-300: var(--om-b-blue, #5aae7a);
+  --color-blue-400: var(--om-blue, #4a9a68);
+  --color-blue-500: var(--om-blue, #4a9a68);
 
-  /* Typografie ----------------------------------------------------------- */
-  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, "Noto Sans",
-    sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular,
-    "Cascadia Mono", monospace;
+  /* Typografie: EXAKT wie die Shell — überall dieselbe Mono-Familie
+     (Style.qml: fontFamily "monospace" → JetBrainsMono Nerd Font,
+     base-size 12). Kein Inter/kein Sans irgendwo. */
+  --font-sans: "JetBrainsMono Nerd Font", "JetBrains Mono", ui-monospace,
+    SFMono-Regular, Menlo, monospace;
+  --font-mono: "JetBrainsMono Nerd Font", "JetBrains Mono", ui-monospace,
+    SFMono-Regular, Menlo, monospace;
 
-  /* Radien / Schatten ---------------------------------------------------- */
-  --radius-xl: 0.9rem;
-  --radius-2xl: 1.15rem;
+  /* Radien: kantig wie Omarchy-Tools -------------------------------------- */
+  --radius-sm: 0.1875rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.375rem;
+  --radius-2xl: 0.5rem;
 }
 
-/* Eigene Design-Variablen (nicht Tailwind-Theme, nur fuer .pp-* Klassen). */
+/* Evergreen-Defaults (identisch zu themes/evergreen/colors.toml). */
 :root {
-  --pp-surface: #0b2029;
-  --pp-surface-2: #0e2b37;
-  --pp-line: rgba(69, 207, 232, 0.14);
-  --pp-line-strong: rgba(69, 207, 232, 0.28);
-  --pp-glow: 0 0 0 1px rgba(69, 207, 232, 0.1), 0 12px 30px -18px rgba(0, 0, 0, 0.9);
+  color-scheme: dark;
+  --om-bg-darker: #080d0a;
+  --om-bg-dark: #0c130e;
+  --om-bg: #101913;
+  --om-bg-light: #28302b;
+  --om-fg-dim: #798375;
+  --om-fg: #a1af9c;
+  --om-fg-light: #afbbab;
+  --om-fg-bright: #b9c3b5;
+  --om-accent: #4a9a68;
+  --om-selection: #28302b;
+  --om-muted: #4a684a;
+  --om-red: #c87a5c;
+  --om-yellow: #c4a64e;
+  --om-orange: #d08e74;
+  --om-green: #6aae52;
+  --om-cyan: #52987a;
+  --om-blue: #4a9a68;
+  --om-magenta: #8a7856;
+  --om-b-red: #d89268;
+  --om-b-yellow: #d4ba60;
+  --om-b-green: #82c45a;
+  --om-b-cyan: #48aa82;
+  --om-b-blue: #5aae7a;
+  --om-b-magenta: #a08e66;
+  --om-brown: #7d5546;
+
+  --pp-surface: var(--om-bg);
+  --pp-line: var(--om-muted);
+  --pp-line-strong: var(--om-fg);
 }
 
 html,
@@ -69,50 +103,32 @@ body,
 }
 
 body {
-  background:
-    radial-gradient(1200px 600px at 12% -8%, rgba(22, 196, 127, 0.09), transparent 60%),
-    radial-gradient(900px 520px at 92% 0%, rgba(69, 207, 232, 0.08), transparent 55%),
-    var(--color-zinc-950);
+  background: var(--color-zinc-950);
   color: var(--color-zinc-200);
 }
 
-/* --- Karten / Panels ------------------------------------------------------ */
+/* --- Karten / Panels: flach, 1px-Border, keine Schatten -------------------- */
 
 .pp-card {
-  position: relative;
   border-radius: var(--radius-2xl);
   border: 1px solid var(--pp-line);
-  background: linear-gradient(180deg, var(--pp-surface-2) 0%, var(--pp-surface) 100%);
-  box-shadow: var(--pp-glow);
-}
-
-/* Feiner Lichtsaum an der Oberkante — gibt den Boxen physische Tiefe. */
-.pp-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 1px;
-  border-radius: inherit;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.16),
-    transparent
-  );
-  pointer-events: none;
+  background: var(--pp-surface);
 }
 
 .pp-card-hover {
-  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color 0.15s ease;
 }
 
 .pp-card-hover:hover {
   border-color: var(--pp-line-strong);
-  transform: translateY(-2px);
-  box-shadow: 0 0 0 1px rgba(69, 207, 232, 0.18), 0 18px 36px -20px rgba(0, 0, 0, 1);
 }
 
-/* --- Menuboxen (Sidebar) -------------------------------------------------- */
+/* Modale Dialoge: exakter Popup-Token (popups.border = active-border). */
+.pp-modal {
+  border: 1px solid var(--om-accent);
+}
+
+/* --- Menuboxen (Sidebar): flach, Aktiv-Zustand per Balken ------------------ */
 
 .pp-nav-box {
   position: relative;
@@ -122,38 +138,25 @@ body {
   gap: 0.7rem;
   border-radius: var(--radius-xl);
   border: 1px solid transparent;
-  background: rgba(14, 43, 55, 0.55);
+  background: transparent;
   padding: 0.6rem 0.7rem;
   text-align: left;
-  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .pp-nav-box:hover {
-  background: rgba(20, 56, 74, 0.85);
+  background: color-mix(in srgb, var(--om-bg-light) 55%, transparent);
   border-color: var(--pp-line);
 }
 
+/* Aktiv = selected-Fläche wie in btop/shell (selected_bg + Akzent-Text). */
 .pp-nav-box[data-active="true"] {
-  background: linear-gradient(
-    100deg,
-    rgba(22, 196, 127, 0.16),
-    rgba(69, 207, 232, 0.08) 55%,
-    rgba(14, 43, 55, 0.6)
-  );
-  border-color: rgba(22, 196, 127, 0.4);
+  background: var(--om-bg-light);
+  border-color: var(--pp-line);
 }
 
-/* Aktiv-Marker links an der Box. */
-.pp-nav-box[data-active="true"]::after {
-  content: "";
-  position: absolute;
-  left: -1px;
-  top: 22%;
-  bottom: 22%;
-  width: 3px;
-  border-radius: 999px;
-  background: var(--color-emerald-400);
-  box-shadow: 0 0 12px 1px rgba(61, 220, 151, 0.6);
+.pp-nav-box[data-active="true"] .pp-nav-label {
+  color: var(--om-accent);
 }
 
 /* Icon-Kachel innerhalb einer Menubox. */
@@ -163,18 +166,18 @@ body {
   height: 1.9rem;
   width: 1.9rem;
   flex: none;
-  border-radius: 0.65rem;
+  border-radius: var(--radius-xl);
   border: 1px solid var(--pp-line);
-  background: rgba(6, 20, 27, 0.7);
+  background: color-mix(in srgb, var(--om-muted) 16%, transparent);
 }
 
-/* --- Badges / Pillen ------------------------------------------------------ */
+/* --- Badges / Pillen: eckig ------------------------------------------------ */
 
 .pp-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   border: 1px solid currentColor;
   padding: 0.1rem 0.5rem;
   font-size: 0.65rem;

@@ -12,6 +12,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { ActiveTab } from '../types';
+import { plural, useLang } from '../i18n';
 
 interface SidebarProps {
   activeTab: ActiveTab;
@@ -49,6 +50,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   networkCount,
   onOpenAbout,
 }) => {
+  const { lang, t } = useLang();
+
   const neutralBadge = 'text-zinc-400 border-zinc-800 bg-zinc-900';
   const goodBadge = 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10';
   const warnBadge = 'text-amber-300 border-amber-500/30 bg-amber-500/10';
@@ -57,58 +60,72 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems: NavItem[] = [
     {
       id: 'dashboard',
-      label: 'Übersicht',
-      hint: 'Lage auf einen Blick',
+      label: t('nav.dashboard'),
+      hint: t('nav.dashboardHint'),
       icon: LayoutDashboard,
       badge: null,
       badgeClass: neutralBadge,
     },
     {
       id: 'containers',
-      label: 'Container',
-      hint: 'Dienste und Zustand',
+      label: t('nav.containers'),
+      hint: t('nav.containersHint'),
       icon: Box,
       badge: `${runningCount}/${containerCount}`,
       badgeClass: goodBadge,
     },
     {
       id: 'ports',
-      label: 'Ports',
-      hint: 'Belegung und Konflikte',
+      label: t('nav.ports'),
+      hint: t('nav.portsHint'),
       icon: Radio,
-      badge: collisionCount > 0 ? `${collisionCount} Konflikt${collisionCount > 1 ? 'e' : ''}` : 'frei',
+      badge:
+        collisionCount > 0
+          ? plural(
+              lang,
+              collisionCount,
+              t('nav.conflictOne', { count: collisionCount }),
+              t('nav.conflictMany', { count: collisionCount }),
+            )
+          : t('nav.portsFree'),
       badgeClass: collisionCount > 0 ? badBadge : neutralBadge,
     },
     {
       id: 'images',
-      label: 'Images',
-      hint: 'Abbilder auf dem Host',
+      label: t('nav.images'),
+      hint: t('nav.imagesHint'),
       icon: Layers,
-      badge: danglingImageCount > 0 ? `${danglingImageCount} ungenutzt` : `${imageCount}`,
+      badge:
+        danglingImageCount > 0
+          ? t('nav.unusedBadge', { count: danglingImageCount })
+          : `${imageCount}`,
       badgeClass: danglingImageCount > 0 ? warnBadge : neutralBadge,
     },
     {
       id: 'volumes',
-      label: 'Volumes',
-      hint: 'Dauerhafte Daten',
+      label: t('nav.volumes'),
+      hint: t('nav.volumesHint'),
       icon: HardDrive,
-      badge: danglingVolumeCount > 0 ? `${danglingVolumeCount} ungenutzt` : `${volumeCount}`,
+      badge:
+        danglingVolumeCount > 0
+          ? t('nav.unusedBadge', { count: danglingVolumeCount })
+          : `${volumeCount}`,
       badgeClass: danglingVolumeCount > 0 ? warnBadge : neutralBadge,
     },
     {
       id: 'networks',
-      label: 'Netzwerke',
-      hint: 'Bridges und Subnetze',
+      label: t('nav.networks'),
+      hint: t('nav.networksHint'),
       icon: Network,
       badge: `${networkCount}`,
       badgeClass: neutralBadge,
     },
     {
       id: 'events',
-      label: 'Ereignisse',
-      hint: 'Live-Strom der Engine',
+      label: t('nav.events'),
+      hint: t('nav.eventsHint'),
       icon: Activity,
-      badge: 'Live',
+      badge: t('nav.liveBadge'),
       badgeClass: 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10',
     },
   ];
@@ -116,7 +133,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside className="flex w-64 flex-none select-none flex-col justify-between gap-3 border-r border-zinc-800/60 bg-zinc-950/60 p-3">
       <div className="space-y-2 overflow-y-auto">
-        <p className="pp-eyebrow px-1 pb-1 pt-2">Navigation</p>
+        <p className="pp-eyebrow px-1 pb-1 pt-2">{t('nav.title')}</p>
 
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -130,12 +147,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className="pp-nav-box"
             >
               <span className="pp-nav-icon">
-                <Icon className={`h-4 w-4 ${isActive ? 'text-emerald-300' : 'text-zinc-400'}`} />
+                <Icon className={`h-4 w-4 ${isActive ? 'text-emerald-500' : 'text-zinc-400'}`} />
               </span>
 
               <span className="min-w-0 flex-1">
                 <span
-                  className={`block truncate text-[13px] font-semibold ${
+                  className={`pp-nav-label block truncate text-[13px] font-semibold ${
                     isActive ? 'text-zinc-100' : 'text-zinc-300'
                   }`}
                 >
@@ -157,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs font-semibold text-zinc-200">
             <Server className="h-3.5 w-3.5 text-emerald-300" />
-            <span>Docker-Socket</span>
+            <span>{t('nav.socketTitle')}</span>
           </div>
           <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_2px] shadow-emerald-500/40" />
         </div>
@@ -165,7 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950/60 px-2 py-1.5">
           <ShieldCheck className="h-3.5 w-3.5 flex-none text-cyan-300" />
           <p className="text-[10.5px] leading-snug text-zinc-400">
-            Nur lesender Zugriff auf <code className="text-zinc-300">docker.sock</code>
+            {t('nav.socketNotePre')} <code className="text-zinc-300">docker.sock</code>
           </p>
         </div>
 
@@ -174,7 +191,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           className="flex w-full items-center gap-1.5 border-t border-zinc-800 pt-2 text-[11px] font-medium text-emerald-300 transition hover:text-emerald-200"
         >
           <Info className="h-3 w-3" />
-          <span>Über PortPilot</span>
+          <span>{t('nav.about')}</span>
         </button>
       </div>
     </aside>

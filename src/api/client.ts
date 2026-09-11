@@ -6,6 +6,7 @@ import type {
   DockerSystemEvent,
   DockerVolume,
 } from '../types';
+import { getLang, translate } from '../i18n';
 
 /** Fehler mit HTTP-Kontext, damit die UI 503 (Docker aus) von 500 unterscheiden kann. */
 export class ApiError extends Error {
@@ -25,7 +26,7 @@ async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
     res = await fetch(`/api${path}`, { signal });
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') throw err;
-    throw new ApiError('PortPilot-Backend nicht erreichbar.', 0, 'NETWORK');
+    throw new ApiError(translate(getLang(), 'api.unreachable'), 0, 'NETWORK');
   }
 
   if (!res.ok) {

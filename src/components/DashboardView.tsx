@@ -23,6 +23,7 @@ import type {
   PortCollision,
 } from '../types';
 import { formatBytes, formatUptime } from '../utils/dockerUtils';
+import { plural, useLang } from '../i18n';
 import { StatBox } from './ui/StatBox';
 import { GaugeRing } from './ui/GaugeRing';
 
@@ -51,6 +52,7 @@ export const DashboardView = ({
   onSelectContainer,
   onNavigate,
 }: DashboardViewProps) => {
+  const { lang, t } = useLang();
   const [cardMode, setCardMode] = useState(true);
 
   const stats = useMemo(() => {
@@ -99,11 +101,15 @@ export const DashboardView = ({
         </span>
         <div className="flex-1">
           <p className={`text-sm font-semibold ${allGood ? 'text-emerald-300' : 'text-rose-300'}`}>
-            {allGood ? 'Alle Dienste laufen sauber' : 'Auffälligkeiten auf dem Host'}
+            {allGood ? t('dash.allGood') : t('dash.attention')}
           </p>
           <p className="text-[11px] text-zinc-400">
-            {stats.running.length} von {containers.length} Containern aktiv ·{' '}
-            {collisions.length} Port-Konflikte · {stats.failed.length} gestoppt oder fehlerhaft
+            {t('dash.summary', {
+              running: stats.running.length,
+              total: containers.length,
+              conflicts: collisions.length,
+              failed: stats.failed.length,
+            })}
           </p>
         </div>
         {collisions.length > 0 && (
@@ -112,7 +118,7 @@ export const DashboardView = ({
             className="flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/12 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20"
           >
             <ShieldAlert className="h-3.5 w-3.5" />
-            Konflikte ansehen
+            {t('dash.viewConflicts')}
           </button>
         )}
       </div>
@@ -121,30 +127,39 @@ export const DashboardView = ({
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <StatBox
           icon={Box}
-          label="Container gesamt"
+          label={t('dash.statTotal')}
           value={containers.length}
           tone="neutral"
           onClick={() => onNavigate('containers')}
         />
         <StatBox
           icon={Activity}
-          label="Laufend"
+          label={t('dash.statRunning')}
           value={stats.running.length}
           tone="good"
           onClick={() => onNavigate('containers')}
         />
         <StatBox
           icon={AlertTriangle}
-          label="Gestoppt / Fehler"
+          label={t('dash.statFailed')}
           value={stats.failed.length}
           tone={stats.failed.length > 0 ? 'warn' : 'neutral'}
           onClick={() => onNavigate('containers')}
         />
         <StatBox
           icon={Radio}
-          label="Offene Ports"
+          label={t('dash.statPorts')}
           value={stats.publishedPorts}
-          hint={collisions.length > 0 ? `${collisions.length} Konflikte` : 'konfliktfrei'}
+          hint={
+            collisions.length > 0
+              ? plural(
+                  lang,
+                  collisions.length,
+                  t('dash.portsConflictOne', { count: collisions.length }),
+                  t('dash.portsConflictsHint', { count: collisions.length }),
+                )
+              : t('dash.portsFreeHint')
+          }
           tone={collisions.length > 0 ? 'bad' : 'info'}
           onClick={() => onNavigate('ports')}
         />
@@ -158,9 +173,14 @@ export const DashboardView = ({
         />
         <StatBox
           icon={HardDrive}
-          label="Volumes"
+          label={t('nav.volumes')}
           value={volumes.length}
-          hint={`${networks.length} Netzwerke`}
+          hint={plural(
+            lang,
+            networks.length,
+            t('dash.networksOne', { count: networks.length }),
+            t('dash.networksHint', { count: networks.length }),
+          )}
           tone="neutral"
           onClick={() => onNavigate('volumes')}
         />
@@ -171,8 +191,11 @@ export const DashboardView = ({
         <div className="pp-card grid place-items-center p-5">
           <GaugeRing
             percent={stats.healthPercent}
-            label="Aktive Dienste"
-            caption={`${stats.running.length} von ${containers.length} Containern`}
+            label={t('dash.gaugeLabel')}
+            caption={t('dash.gaugeCaption', {
+              running: stats.running.length,
+              total: containers.length,
+            })}
             tone={stats.healthPercent > 80 ? 'good' : stats.healthPercent > 50 ? 'warn' : 'bad'}
           />
         </div>
@@ -180,19 +203,19 @@ export const DashboardView = ({
         <div className="pp-card p-5 lg:col-span-2">
           <div className="mb-4 flex items-start justify-between">
             <div>
-              <p className="pp-eyebrow">Hostlast</p>
-              <p className="mt-1 text-sm text-zinc-300">Summierte CPU-Last der laufenden Container</p>
+              <p className="pp-eyebrow">{t('dash.hostLoad')}</p>
+              <p className="mt-1 text-sm text-zinc-300">{t('dash.hostLoadSub')}</p>
             </div>
             <div className="flex gap-4">
               <div className="text-right">
                 <p className="text-lg font-semibold text-cyan-300">{stats.cpu.toFixed(1)}%</p>
-                <p className="text-[10px] text-zinc-500">CPU gesamt</p>
+                <p className="text-[10px] text-zinc-500">{t('dash.cpuTotal')}</p>
               </div>
               <div className="text-right">
                 <p className="text-lg font-semibold text-emerald-300">
                   {stats.memUsed.toFixed(0)} MB
                 </p>
-                <p className="text-[10px] text-zinc-500">RAM belegt</p>
+                <p className="text-[10px] text-zinc-500">{t('dash.ramUsed')}</p>
               </div>
             </div>
           </div>
@@ -200,13 +223,13 @@ export const DashboardView = ({
           <LoadChart data={loadHistory} />
 
           <div className="mt-4 grid grid-cols-3 gap-3">
-            <MiniStat icon={Cpu} label="Ø CPU je Container" value={
+            <MiniStat icon={Cpu} label={t('dash.avgCpu')} value={
               stats.running.length ? `${(stats.cpu / stats.running.length).toFixed(1)}%` : '—'
             } />
-            <MiniStat icon={MemoryStick} label="Ø RAM je Container" value={
+            <MiniStat icon={MemoryStick} label={t('dash.avgRam')} value={
               stats.running.length ? `${(stats.memUsed / stats.running.length).toFixed(0)} MB` : '—'
             } />
-            <MiniStat icon={Network} label="Ereignisse" value={`${events.length}`} />
+            <MiniStat icon={Network} label={t('dash.eventsStat')} value={`${events.length}`} />
           </div>
         </div>
       </div>
@@ -214,8 +237,8 @@ export const DashboardView = ({
       {/* Container-Kacheln -------------------------------------------------- */}
       <div className="flex items-center justify-between pt-1">
         <div>
-          <p className="pp-eyebrow">Alle</p>
-          <h2 className="text-lg font-semibold text-zinc-100">Container</h2>
+          <p className="pp-eyebrow">{t('dash.allEyebrow')}</p>
+          <h2 className="text-lg font-semibold text-zinc-100">{t('dash.containersHeading')}</h2>
         </div>
 
         <button
@@ -223,13 +246,13 @@ export const DashboardView = ({
           className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/70 px-3 py-1.5 text-xs text-zinc-300 transition hover:border-cyan-500/40 hover:text-cyan-300"
         >
           {cardMode ? <LayoutGrid className="h-3.5 w-3.5" /> : <Rows3 className="h-3.5 w-3.5" />}
-          {cardMode ? 'Kachelansicht' : 'Kompaktliste'}
+          {cardMode ? t('dash.viewCards') : t('dash.viewCompact')}
         </button>
       </div>
 
       {containers.length === 0 ? (
         <div className="pp-card grid place-items-center p-10 text-sm text-zinc-500">
-          Keine Container auf diesem Host gefunden.
+          {t('dash.empty')}
         </div>
       ) : cardMode ? (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -280,13 +303,14 @@ const MiniStat = ({
 );
 
 const LoadChart = ({ data }: { data: number[] }) => {
+  const { t } = useLang();
   const width = 640;
   const height = 120;
 
   if (data.length < 2) {
     return (
       <div className="grid h-[120px] place-items-center rounded-xl border border-dashed border-zinc-800 text-xs text-zinc-500">
-        Noch keine Messwerte — Live-Stats einschalten.
+        {t('dash.noMetrics')}
       </div>
     );
   }
@@ -344,33 +368,34 @@ const ContainerCard = ({
   collisions: PortCollision[];
   onOpen: (c: ContainerItem) => void;
 }) => {
+  const { lang, t } = useLang();
   const isRunning = container.status === 'running';
   const collidingPorts = new Set(collisions.map((c) => c.port));
   const hasConflict = container.ports.some((p) => collidingPorts.has(p.hostPort));
 
   const rows: { label: string; value: string; tone: string }[] = [
     {
-      label: 'Status',
+      label: t('dash.cardStatus'),
       value: container.statusText || container.status,
       tone: isRunning ? 'text-emerald-300 border-emerald-500/30' : 'text-zinc-400 border-zinc-700',
     },
     {
-      label: 'Laufzeit',
-      value: formatUptime(container.created),
+      label: t('dash.cardUptime'),
+      value: formatUptime(container.created, lang),
       tone: 'text-zinc-300 border-zinc-700',
     },
     {
-      label: 'Ports',
-      value: container.ports.length ? container.ports.map((p) => p.hostPort).join(', ') : 'keine',
+      label: t('dash.cardPorts'),
+      value: container.ports.length ? container.ports.map((p) => p.hostPort).join(', ') : t('dash.cardPortsNone'),
       tone: hasConflict ? 'text-rose-300 border-rose-500/40' : 'text-cyan-300 border-cyan-500/25',
     },
     {
-      label: 'CPU',
+      label: t('dash.cardCpu'),
       value: isRunning ? `${container.stats.cpuPercent.toFixed(1)} %` : '—',
       tone: 'text-zinc-300 border-zinc-700',
     },
     {
-      label: 'RAM',
+      label: t('dash.cardRam'),
       value: isRunning ? `${container.stats.memoryUsageMB.toFixed(0)} MB` : '—',
       tone: 'text-zinc-300 border-zinc-700',
     },
@@ -400,7 +425,7 @@ const ContainerCard = ({
         ))}
 
         <div className="pt-2">
-          <p className="mb-1.5 text-[10px] font-semibold text-zinc-400">CPU-Verlauf</p>
+          <p className="mb-1.5 text-[10px] font-semibold text-zinc-400">{t('dash.cardCpuHistory')}</p>
           <HistoryBars history={container.stats.cpuHistory} active={isRunning} />
         </div>
       </div>

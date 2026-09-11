@@ -16,6 +16,7 @@ import {
   listNetworks,
   listVolumes,
 } from './docker';
+import { getOmarchyTheme, listOmarchyThemes } from './theme';
 
 /**
  * Kapselt Fehler einheitlich: Ist die Engine nicht erreichbar, kommt 503 mit
@@ -97,6 +98,21 @@ export function createApiRouter(): Router {
   router.get('/images', handle(() => listImages()));
   router.get('/volumes', handle(() => listVolumes()));
   router.get('/networks', handle(() => listNetworks()));
+
+  // Omarchy-Theme: folgt dem aktiven System-Theme (Farben aus colors.toml).
+  // Ohne Omarchy kommt ok:false und das Frontend bleibt auf seinen Defaults.
+  router.get(
+    '/themes',
+    handle(() => listOmarchyThemes()),
+  );
+
+  router.get(
+    '/theme',
+    handle((req) => {
+      const name = typeof req.query.name === 'string' ? req.query.name : undefined;
+      return getOmarchyTheme(name);
+    }),
+  );
 
   router.get('/events', streamEvents);
 

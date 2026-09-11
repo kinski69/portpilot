@@ -16,6 +16,7 @@ import {
 import { ContainerItem, PortCollision } from '../types';
 import { getStatusColorClass, buildPortUrl, buildStartCommand } from '../utils/dockerUtils';
 import { copyText } from '../utils/clipboard';
+import { plural, useLang } from '../i18n';
 import {
   sortRows,
   useSortState,
@@ -50,6 +51,7 @@ export const ContainersList: React.FC<ContainersListProps> = ({
   onSelectContainer,
   onNavigateToPortOverview
 }) => {
+  const { lang, t } = useLang();
   const [groupByCompose, setGroupByCompose] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [statusFilter, setStatusFilter] = useState<'all' | 'running' | 'exited' | 'error'>('all');
@@ -84,7 +86,7 @@ export const ContainersList: React.FC<ContainersListProps> = ({
   const groupedProjects: Record<string, ContainerItem[]> = {};
   if (groupByCompose) {
     filteredContainers.forEach(c => {
-      const proj = c.composeProject || 'Standalone Containers';
+      const proj = c.composeProject || t('cont.standaloneGroup');
       if (!groupedProjects[proj]) {
         groupedProjects[proj] = [];
       }
@@ -127,7 +129,7 @@ export const ContainersList: React.FC<ContainersListProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-3 bg-zinc-900/80 p-3 rounded-xl border border-zinc-800">
         {/* Status Filter Badges */}
         <div className="flex items-center space-x-1.5 text-xs">
-          <span className="text-zinc-500 font-medium mr-1.5">Filter:</span>
+          <span className="text-zinc-500 font-medium mr-1.5">{t('cont.filter')}</span>
           <button
             onClick={() => setStatusFilter('all')}
             className={`px-2.5 py-1 rounded-md transition font-medium ${
@@ -136,7 +138,7 @@ export const ContainersList: React.FC<ContainersListProps> = ({
                 : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
             }`}
           >
-            All ({containers.length})
+            {t('cont.fAll')} ({containers.length})
           </button>
 
           <button
@@ -147,7 +149,7 @@ export const ContainersList: React.FC<ContainersListProps> = ({
                 : 'text-zinc-400 hover:text-emerald-300 hover:bg-zinc-800/50'
             }`}
           >
-            Running ({containers.filter(c => c.status === 'running').length})
+            {t('cont.fRunning')} ({containers.filter(c => c.status === 'running').length})
           </button>
 
           <button
@@ -158,7 +160,7 @@ export const ContainersList: React.FC<ContainersListProps> = ({
                 : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
             }`}
           >
-            Exited ({containers.filter(c => c.status === 'exited').length})
+            {t('cont.fExited')} ({containers.filter(c => c.status === 'exited').length})
           </button>
 
           <button
@@ -169,7 +171,7 @@ export const ContainersList: React.FC<ContainersListProps> = ({
                 : 'text-zinc-400 hover:text-rose-300 hover:bg-zinc-800/50'
             }`}
           >
-            Errors ({containers.filter(c => c.status === 'error').length})
+            {t('cont.fErrors')} ({containers.filter(c => c.status === 'error').length})
           </button>
         </div>
 
@@ -184,7 +186,7 @@ export const ContainersList: React.FC<ContainersListProps> = ({
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>Nach Compose gruppieren</span>
+            <span>{t('cont.groupByCompose')}</span>
           </button>
 
           <div className="flex items-center bg-zinc-950 p-0.5 rounded-lg border border-zinc-800">
@@ -193,7 +195,7 @@ export const ContainersList: React.FC<ContainersListProps> = ({
               className={`p-1.5 rounded-md transition ${
                 viewMode === 'grid' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
               }`}
-              title="Kachelansicht"
+              title={t('cont.viewCardsTitle')}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
             </button>
@@ -202,7 +204,7 @@ export const ContainersList: React.FC<ContainersListProps> = ({
               className={`p-1.5 rounded-md transition ${
                 viewMode === 'table' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
               }`}
-              title="Listenansicht"
+              title={t('cont.viewListTitle')}
             >
               <ListIcon className="w-3.5 h-3.5" />
             </button>
@@ -217,10 +219,15 @@ export const ContainersList: React.FC<ContainersListProps> = ({
             <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
             <div>
               <div className="font-semibold text-rose-300 text-sm">
-                Port-Konflikt ({collisions.length} betroffene{collisions.length > 1 ? '' : 'r'} Port)
+                {plural(
+                  lang,
+                  collisions.length,
+                  t('cont.bannerOne', { count: collisions.length }),
+                  t('cont.bannerMany', { count: collisions.length }),
+                )}
               </div>
               <p className="text-rose-300/80 mt-0.5">
-                Mehrere Container binden denselben Host-Port. In der Port-Ansicht siehst du, welche.
+                {t('cont.bannerBody')}
               </p>
             </div>
           </div>
@@ -228,7 +235,7 @@ export const ContainersList: React.FC<ContainersListProps> = ({
             onClick={onNavigateToPortOverview}
             className="shrink-0 bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg font-medium transition"
           >
-            Ansehen
+            {t('cont.viewAction')}
           </button>
         </div>
       )}
@@ -237,11 +244,11 @@ export const ContainersList: React.FC<ContainersListProps> = ({
       {filteredContainers.length === 0 ? (
         <div className="text-center py-16 bg-zinc-900/30 rounded-2xl border border-zinc-800/60 p-8 space-y-3">
           <Square className="w-10 h-10 text-zinc-600 mx-auto" />
-          <h3 className="text-zinc-300 font-semibold text-base">Keine Container gefunden</h3>
+          <h3 className="text-zinc-300 font-semibold text-base">{t('cont.emptyTitle')}</h3>
           <p className="text-zinc-500 text-xs max-w-sm mx-auto">
             {searchQuery
-              ? `Kein Container passt zu "${searchQuery}".`
-              : 'Auf diesem Host existieren keine Container.'}
+              ? t('cont.emptySearch', { q: searchQuery })
+              : t('cont.emptyNone')}
           </p>
         </div>
       ) : groupByCompose ? (
@@ -250,8 +257,8 @@ export const ContainersList: React.FC<ContainersListProps> = ({
           <div key={projectName} className="space-y-3">
             <div className="flex items-center space-x-2 text-xs font-semibold text-zinc-400 border-b border-zinc-800/80 pb-1.5">
               <Layers className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Project: <strong className="text-zinc-200">{projectName}</strong></span>
-              <span className="text-zinc-600">({groupItems.length} services)</span>
+              <span>{t('cont.projectLabel')} <strong className="text-zinc-200">{projectName}</strong></span>
+              <span className="text-zinc-600">{t('cont.servicesCount', { count: groupItems.length })}</span>
             </div>
 
             {viewMode === 'grid' ? (
@@ -312,6 +319,7 @@ export const ContainersList: React.FC<ContainersListProps> = ({
  * buildStartCommand).
  */
 const StartHint: React.FC<{ container: ContainerItem }> = ({ container }) => {
+  const { t } = useLang();
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'failed'>('idle');
   const command = buildStartCommand(container);
 
@@ -350,8 +358,8 @@ const StartHint: React.FC<{ container: ContainerItem }> = ({ container }) => {
         onClick={handleCopy}
         title={
           copyState === 'failed'
-            ? 'Kopieren blockiert — Befehl von Hand markieren'
-            : 'Startbefehl kopieren'
+            ? t('cont.copyBlocked')
+            : t('cont.copyCommand')
         }
         className="flex w-full items-center justify-between gap-2 rounded bg-zinc-900 px-2 py-1 font-mono text-zinc-300 transition hover:bg-zinc-800 hover:text-emerald-300"
       >
@@ -384,7 +392,8 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
   onSelect,
   renderSparkline
 }) => {
-  const { badgeBg, badgeText, dotBg } = getStatusColorClass(container.status);
+  const { lang, t } = useLang();
+  const { badgeBg, badgeText, dotBg } = getStatusColorClass(container.status, lang);
 
   // Klick auf die Kachel oeffnet das Detailfenster. Markiert der Benutzer
   // gerade Text (z.B. einen Port zum Kopieren), gilt das nicht als Klick.
@@ -397,7 +406,7 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
     <div
       role="button"
       tabIndex={0}
-      aria-label={`Details zu ${container.name}`}
+      aria-label={t('cont.detailsFor', { name: container.name })}
       onClick={handleCardActivate}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -443,9 +452,9 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
 
       {/* Port Mappings */}
       <div className="space-y-1 text-[11px]">
-        <div className="text-zinc-500 font-medium text-[10px] uppercase tracking-wider">Ports:</div>
+        <div className="text-zinc-500 font-medium text-[10px] uppercase tracking-wider">{t('cont.portsLabel')}</div>
         {container.ports.length === 0 ? (
-          <span className="text-zinc-500 italic">Keine Ports veröffentlicht</span>
+          <span className="text-zinc-500 italic">{t('cont.noPorts')}</span>
         ) : (
           <div className="flex flex-wrap gap-1">
             {container.ports.map((p, idx) => {
@@ -476,7 +485,7 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  title={`${url} in neuem Tab öffnen`}
+                  title={t('cont.openInTab', { url })}
                   className={`${style} hover:border-emerald-500/60 hover:bg-zinc-700/80 transition`}
                 >
                   {inhalt}
@@ -487,8 +496,8 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
                   className={style}
                   title={
                     isColliding
-                      ? `Port-Konflikt auf Host-Port ${p.hostPort}`
-                      : `Host-Port ${p.hostPort} → Container-Port ${p.containerPort}`
+                      ? t('cont.conflictOnPort', { port: p.hostPort })
+                      : t('cont.portMapsTo', { host: p.hostPort, cont: p.containerPort })
                   }
                 >
                   {inhalt}
@@ -550,7 +559,7 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
             className="flex items-center space-x-1 px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition text-[11px]"
           >
             <Terminal className="w-3 h-3 text-cyan-400" />
-            <span>Logs</span>
+            <span>{t('cont.logsBtn')}</span>
           </button>
 
           <button
@@ -561,7 +570,7 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
             className="flex items-center space-x-1 px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition text-[11px]"
           >
             <Info className="w-3 h-3 text-emerald-400" />
-            <span>Details</span>
+            <span>{t('cont.detailsBtn')}</span>
           </button>
         </div>
       </div>
@@ -585,6 +594,7 @@ const ContainerTableView: React.FC<ContainerTableViewProps> = ({
   sort,
   onToggleSort
 }) => {
+  const { lang, t } = useLang();
   const sorted = sortRows(containers, CONTAINER_ACCESSORS, sort);
 
   return (
@@ -595,11 +605,11 @@ const ContainerTableView: React.FC<ContainerTableViewProps> = ({
             <tr>
               {(
                 [
-                  ['name', 'Name & Image'],
-                  ['status', 'Status'],
-                  ['compose', 'Compose-Projekt'],
-                  ['ports', 'Ports'],
-                  ['metrics', 'CPU / RAM'],
+                  ['name', t('cont.thName')],
+                  ['status', t('cont.thStatus')],
+                  ['compose', t('cont.thCompose')],
+                  ['ports', t('cont.thPorts')],
+                  ['metrics', t('cont.thMetrics')],
                 ] as [ContainerColumn, string][]
               ).map(([key, label]) => (
                 <SortableHeader
@@ -611,12 +621,12 @@ const ContainerTableView: React.FC<ContainerTableViewProps> = ({
                   className="py-2.5 px-3"
                 />
               ))}
-              <th className="py-2.5 px-3 text-right">Aktion</th>
+              <th className="py-2.5 px-3 text-right">{t('cont.thAction')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800/60">
             {sorted.map(c => {
-              const { badgeBg, badgeText, dotBg } = getStatusColorClass(c.status);
+              const { badgeBg, badgeText, dotBg } = getStatusColorClass(c.status, lang);
               return (
                 <tr key={c.id} className="hover:bg-zinc-800/40 transition">
                   <td className="py-2.5 px-3">
@@ -646,7 +656,7 @@ const ContainerTableView: React.FC<ContainerTableViewProps> = ({
                         {c.composeProject}
                       </span>
                     ) : (
-                      <span className="text-zinc-500 italic">eigenständig</span>
+                      <span className="text-zinc-500 italic">{t('cont.standalone')}</span>
                     )}
                   </td>
 
@@ -668,7 +678,7 @@ const ContainerTableView: React.FC<ContainerTableViewProps> = ({
                             href={url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            title={`${url} in neuem Tab öffnen`}
+                            title={t('cont.openInTab', { url })}
                             className={`${style} hover:border-emerald-500/60 transition`}
                           >
                             {text}
@@ -699,7 +709,7 @@ const ContainerTableView: React.FC<ContainerTableViewProps> = ({
                       <button
                         onClick={() => onSelect(c, 'logs')}
                         className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-cyan-400 transition"
-                        title="Logs anzeigen"
+                        title={t('cont.showLogs')}
                       >
                         <Terminal className="w-3 h-3" />
                       </button>

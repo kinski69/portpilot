@@ -3,6 +3,7 @@ import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import type { ActiveTab, ContainerItem } from './types';
 import { useDockerData } from './hooks/useDockerData';
 import { detectPortCollisions } from './utils/dockerUtils';
+import { useLang } from './i18n';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { ContainersList } from './components/ContainersList';
@@ -18,6 +19,7 @@ import { DashboardView } from './components/DashboardView';
 export type DetailTab = 'logs' | 'stats' | 'env' | 'mounts' | 'networks';
 
 export default function App() {
+  const { lang, t } = useLang();
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAbout, setShowAbout] = useState(false);
@@ -47,8 +49,9 @@ export default function App() {
     () =>
       detectPortCollisions(
         containers.filter((c) => c.status === 'running' || c.status === 'restarting'),
+        lang,
       ),
-    [containers],
+    [containers, lang],
   );
 
   const selectedContainer = useMemo(
@@ -75,7 +78,7 @@ export default function App() {
       <div className="flex h-screen w-screen items-center justify-center bg-zinc-950 text-zinc-400">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
-          <p className="text-sm">Verbinde mit der Docker-Engine…</p>
+          <p className="text-sm">{t('app.connecting')}</p>
         </div>
       </div>
     );
@@ -87,18 +90,18 @@ export default function App() {
         <div className="max-w-lg space-y-4 rounded-2xl border border-rose-500/30 bg-rose-950/20 p-6">
           <div className="flex items-center gap-2 text-rose-400">
             <AlertTriangle className="h-5 w-5" />
-            <h1 className="text-lg font-bold">Keine Verbindung zur Docker-Engine</h1>
+            <h1 className="text-lg font-bold">{t('app.connFailed')}</h1>
           </div>
           <p className="text-sm text-zinc-300">{error}</p>
           <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 font-mono text-xs text-zinc-400">
-            sudo systemctl start docker
+            {t('app.dockerHint')}
           </div>
           <button
             onClick={refresh}
             className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-500"
           >
             <RefreshCw className="h-4 w-4" />
-            Erneut versuchen
+            {t('app.retry')}
           </button>
         </div>
       </div>

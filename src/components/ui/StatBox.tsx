@@ -2,31 +2,26 @@ import type { LucideIcon } from 'lucide-react';
 
 export type StatTone = 'neutral' | 'good' | 'warn' | 'bad' | 'info';
 
-const TONE: Record<StatTone, { icon: string; value: string; ring: string }> = {
+const TONE: Record<StatTone, { icon: string; value: string }> = {
   neutral: {
     icon: 'text-zinc-300 border-zinc-800 bg-zinc-900',
     value: 'text-zinc-100',
-    ring: 'from-zinc-600/20',
   },
   good: {
     icon: 'text-emerald-300 border-emerald-500/30 bg-emerald-500/12',
     value: 'text-emerald-300',
-    ring: 'from-emerald-500/25',
   },
   warn: {
     icon: 'text-amber-300 border-amber-500/30 bg-amber-500/12',
     value: 'text-amber-300',
-    ring: 'from-amber-500/25',
   },
   bad: {
     icon: 'text-rose-300 border-rose-500/30 bg-rose-500/12',
     value: 'text-rose-300',
-    ring: 'from-rose-500/25',
   },
   info: {
     icon: 'text-cyan-300 border-cyan-500/30 bg-cyan-500/12',
     value: 'text-cyan-300',
-    ring: 'from-cyan-500/25',
   },
 };
 
@@ -39,7 +34,7 @@ interface StatBoxProps {
   onClick?: () => void;
 }
 
-/** Kennzahlen-Box der V2-Kopfzeile: Icon-Kachel links, Zahl und Label rechts. */
+/** Kennzahlen-Box: flache Icon-Kachel links, Zahl und Label rechts. */
 export const StatBox = ({
   icon: Icon,
   label,
@@ -56,9 +51,6 @@ export const StatBox = ({
       onClick={onClick}
       className={`pp-card ${onClick ? 'pp-card-hover cursor-pointer' : ''} flex items-center gap-3 overflow-hidden px-4 py-3 text-left`}
     >
-      <span
-        className={`absolute -right-8 -top-10 h-24 w-24 rounded-full bg-gradient-to-b ${t.ring} to-transparent blur-xl`}
-      />
       <span className={`grid h-9 w-9 flex-none place-items-center rounded-xl border ${t.icon}`}>
         <Icon className="h-4 w-4" />
       </span>

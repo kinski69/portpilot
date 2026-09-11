@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, HardDrive, Search } from 'lucide-react';
 import type { DockerVolume } from '../types';
 import { formatBytes, formatUptime } from '../utils/dockerUtils';
+import { useLang } from '../i18n';
 import { useSortableRows, type SortValue } from '../hooks/useSortableRows';
 import { SortableHeader } from './SortableHeader';
 
@@ -17,11 +18,12 @@ const VOLUME_ACCESSORS: Record<VolumeColumn, (vol: DockerVolume) => SortValue> =
   // Ohne ermittelte Groesse als leer behandeln, damit die Striche hinten landen.
   size: (vol) => (vol.sizeBytes > 0 ? vol.sizeBytes : null),
   attached: (vol) => vol.attachedContainers.length,
-  status: (vol) => (vol.inUse ? 'in Benutzung' : 'ungenutzt'),
+  status: (vol) => (vol.inUse ? 1 : 0),
   created: (vol) => new Date(vol.created).getTime(),
 };
 
 export const VolumesView = ({ volumes }: VolumesViewProps) => {
+  const { lang, t } = useLang();
   const [searchQuery, setSearchQuery] = useState('');
 
   const unusedCount = useMemo(() => volumes.filter((v) => !v.inUse).length, [volumes]);
@@ -47,8 +49,8 @@ export const VolumesView = ({ volumes }: VolumesViewProps) => {
           <span>Volumes</span>
         </h2>
         <p className="mt-1 text-xs text-zinc-400">
-          Persistente Datenträger. Ungenutzte lassen sich mit{' '}
-          <code className="text-emerald-400">docker volume prune</code> entfernen.
+          {t('volumes.descPre')}{' '}
+          <code className="text-emerald-400">docker volume prune</code> {t('volumes.descPost')}
         </p>
       </div>
 
@@ -59,13 +61,14 @@ export const VolumesView = ({ volumes }: VolumesViewProps) => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Name oder Mountpoint suchen…"
+            placeholder={t('volumes.searchPh')}
             className="w-full rounded-lg border border-zinc-800 bg-zinc-950 py-1.5 pl-9 pr-3 text-xs text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
           />
         </div>
 
         <div className="text-xs text-zinc-400">
-          Volumes: <strong className="text-white">{volumes.length}</strong> • ungenutzt:{' '}
+          {t('nav.volumes')}: <strong className="text-white">{volumes.length}</strong> •{' '}
+          {t('volumes.unused')}:{' '}
           <strong className="text-amber-400">{unusedCount}</strong>
         </div>
       </div>
@@ -77,12 +80,12 @@ export const VolumesView = ({ volumes }: VolumesViewProps) => {
               <tr>
                 {(
                   [
-                    ['name', 'Name'],
-                    ['driver', 'Treiber'],
-                    ['size', 'Größe'],
-                    ['attached', 'Verbundene Container'],
-                    ['status', 'Status'],
-                    ['created', 'Erstellt'],
+                    ['name', t('volumes.thName')],
+                    ['driver', t('volumes.thDriver')],
+                    ['size', t('volumes.thSize')],
+                    ['attached', t('volumes.thAttached')],
+                    ['status', t('volumes.thStatus')],
+                    ['created', t('volumes.thCreated')],
                   ] as [VolumeColumn, string][]
                 ).map(([key, label]) => (
                   <SortableHeader
@@ -100,7 +103,7 @@ export const VolumesView = ({ volumes }: VolumesViewProps) => {
               {sorted.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-10 text-center text-zinc-500">
-                    Kein Volume passt zum Filter.
+                    {t('volumes.emptyFilter')}
                   </td>
                 </tr>
               ) : (
@@ -133,7 +136,7 @@ export const VolumesView = ({ volumes }: VolumesViewProps) => {
                       {vol.sizeBytes > 0 ? (
                         formatBytes(vol.sizeBytes)
                       ) : (
-                        <span className="font-normal text-zinc-600" title="Nicht ermittelt">
+                        <span className="font-normal text-zinc-600" title={t('volumes.notDetermined')}>
                           —
                         </span>
                       )}
@@ -152,7 +155,7 @@ export const VolumesView = ({ volumes }: VolumesViewProps) => {
                           ))}
                         </div>
                       ) : (
-                        <span className="text-[11px] italic text-zinc-500">keine</span>
+                        <span className="text-[11px] italic text-zinc-500">{t('volumes.noneAttached')}</span>
                       )}
                     </td>
 
@@ -160,18 +163,18 @@ export const VolumesView = ({ volumes }: VolumesViewProps) => {
                       {vol.inUse ? (
                         <span className="flex w-fit items-center space-x-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400">
                           <CheckCircle2 className="h-3 w-3" />
-                          <span>in Benutzung</span>
+                          <span>{t('volumes.inUse')}</span>
                         </span>
                       ) : (
                         <span className="flex w-fit items-center space-x-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-400">
                           <AlertTriangle className="h-3 w-3" />
-                          <span>ungenutzt</span>
+                          <span>{t('volumes.unused')}</span>
                         </span>
                       )}
                     </td>
 
                     <td className="px-4 py-3 font-sans text-[11px] text-zinc-400">
-                      {formatUptime(vol.created)}
+                      {formatUptime(vol.created, lang)}
                     </td>
                   </tr>
                 ))

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Layers, Search } from 'lucide-react';
 import type { DockerImage } from '../types';
 import { formatBytes, formatUptime } from '../utils/dockerUtils';
+import { plural, useLang } from '../i18n';
 import { useSortableRows, type SortValue } from '../hooks/useSortableRows';
 import { SortableHeader } from './SortableHeader';
 
@@ -22,6 +23,7 @@ const IMAGE_ACCESSORS: Record<ImageColumn, (img: DockerImage) => SortValue> = {
 };
 
 export const ImagesView = ({ images }: ImagesViewProps) => {
+  const { lang, t } = useLang();
   const [searchQuery, setSearchQuery] = useState('');
 
   const reclaimableBytes = useMemo(
@@ -53,8 +55,8 @@ export const ImagesView = ({ images }: ImagesViewProps) => {
           <span>Images</span>
         </h2>
         <p className="mt-1 text-xs text-zinc-400">
-          Lokal vorhandene Images. Nicht verwendete lassen sich mit{' '}
-          <code className="text-emerald-400">docker image prune</code> entfernen.
+          {t('images.descPre')}{' '}
+          <code className="text-emerald-400">docker image prune</code> {t('images.descPost')}
         </p>
       </div>
 
@@ -65,13 +67,14 @@ export const ImagesView = ({ images }: ImagesViewProps) => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Repository oder Tag suchen…"
+            placeholder={t('images.searchPh')}
             className="w-full rounded-lg border border-zinc-800 bg-zinc-950 py-1.5 pl-9 pr-3 text-xs text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
           />
         </div>
 
         <div className="text-xs text-zinc-400">
-          Images: <strong className="text-white">{images.length}</strong> • ungenutzt:{' '}
+          {t('nav.images')}: <strong className="text-white">{images.length}</strong> •{' '}
+          {t('images.unused')}:{' '}
           <strong className="text-amber-400">{formatBytes(reclaimableBytes)}</strong>
         </div>
       </div>
@@ -83,11 +86,11 @@ export const ImagesView = ({ images }: ImagesViewProps) => {
               <tr>
                 {(
                   [
-                    ['repository', 'Repository & Tag'],
-                    ['shortId', 'Image-ID'],
-                    ['size', 'Größe'],
-                    ['usage', 'Verwendung'],
-                    ['created', 'Erstellt'],
+                    ['repository', t('images.thRepo')],
+                    ['shortId', t('images.thId')],
+                    ['size', t('images.thSize')],
+                    ['usage', t('images.thUsage')],
+                    ['created', t('images.thCreated')],
                   ] as [ImageColumn, string][]
                 ).map(([key, label]) => (
                   <SortableHeader
@@ -105,7 +108,7 @@ export const ImagesView = ({ images }: ImagesViewProps) => {
               {sorted.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-10 text-center text-zinc-500">
-                    Kein Image passt zum Filter.
+                    {t('images.emptyFilter')}
                   </td>
                 </tr>
               ) : (
@@ -135,19 +138,24 @@ export const ImagesView = ({ images }: ImagesViewProps) => {
                         <span className="flex w-fit items-center space-x-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 font-sans text-[10px] text-emerald-400">
                           <CheckCircle2 className="h-3 w-3" />
                           <span>
-                            {img.containerCount} {img.containerCount === 1 ? 'Container' : 'Container'}
+                            {plural(
+                              lang,
+                              img.containerCount,
+                              t('images.containerOne', { count: img.containerCount }),
+                              t('images.containerMany', { count: img.containerCount }),
+                            )}
                           </span>
                         </span>
                       ) : (
                         <span className="flex w-fit items-center space-x-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 font-sans text-[10px] text-amber-400">
                           <AlertTriangle className="h-3 w-3" />
-                          <span>ungenutzt</span>
+                          <span>{t('images.unused')}</span>
                         </span>
                       )}
                     </td>
 
                     <td className="px-4 py-3 font-sans text-[11px] text-zinc-400">
-                      {formatUptime(img.created)}
+                      {formatUptime(img.created, lang)}
                     </td>
                   </tr>
                 ))

@@ -19,6 +19,7 @@ import { api, type ContainerDetail, type LogLine } from '../api/client';
 import type { ContainerItem, ContainerNetwork, VolumeMount } from '../types';
 import { formatBytes, getStatusColorClass } from '../utils/dockerUtils';
 import { copyText } from '../utils/clipboard';
+import { useLang } from '../i18n';
 import { useSortableRows, type SortValue } from '../hooks/useSortableRows';
 import { SortableHeader } from './SortableHeader';
 
@@ -30,13 +31,16 @@ interface ContainerDetailModalProps {
   onClose: () => void;
 }
 
-const TABS: { id: DetailTab; label: string; icon: typeof Terminal }[] = [
-  { id: 'logs', label: 'Logs', icon: Terminal },
-  { id: 'stats', label: 'Messwerte', icon: Activity },
-  { id: 'env', label: 'Umgebung', icon: Key },
-  { id: 'mounts', label: 'Mounts', icon: HardDrive },
-  { id: 'networks', label: 'Netzwerke', icon: Network },
-];
+function useDetailTabs(): { id: DetailTab; label: string; icon: typeof Terminal }[] {
+  const { t } = useLang();
+  return [
+    { id: 'logs', label: 'Logs', icon: Terminal },
+    { id: 'stats', label: t('detail.tabMetrics'), icon: Activity },
+    { id: 'env', label: t('detail.tabEnv'), icon: Key },
+    { id: 'mounts', label: t('detail.tabMounts'), icon: HardDrive },
+    { id: 'networks', label: t('detail.tabNetworks'), icon: Network },
+  ];
+}
 
 type EnvColumn = 'key' | 'value';
 type MountColumn = 'type' | 'source' | 'destination' | 'mode';
@@ -77,6 +81,8 @@ export const ContainerDetailModal = ({
   initialTab = 'logs',
   onClose,
 }: ContainerDetailModalProps) => {
+  const { lang, t } = useLang();
+  const TABS = useDetailTabs();
   const [activeTab, setActiveTab] = useState<DetailTab>(initialTab);
   const [logs, setLogs] = useState<LogLine[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
@@ -169,7 +175,7 @@ export const ContainerDetailModal = ({
     URL.revokeObjectURL(url);
   };
 
-  const { badgeBg, badgeText, dotBg } = getStatusColorClass(container.status);
+  const { badgeBg, badgeText, dotBg } = getStatusColorClass(container.status, lang);
 
   const envEntries = useMemo(() => Object.entries(detail?.env ?? {}), [detail]);
   const envSort = useSortableRows(envEntries, ENV_ACCESSORS, { key: 'key', direction: 'asc' });
@@ -184,11 +190,11 @@ export const ContainerDetailModal = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="flex h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl"
+        className="pp-modal flex h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-zinc-950 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-4 border-b border-zinc-800 bg-zinc-900 p-4">
@@ -210,7 +216,7 @@ export const ContainerDetailModal = ({
           <button
             onClick={onClose}
             className="rounded-lg bg-zinc-800 p-1.5 text-zinc-400 transition hover:bg-zinc-700 hover:text-white"
-            aria-label="Schließen"
+            aria-label={t('detail.close')}
           >
             <X className="h-4 w-4" />
           </button>
@@ -247,13 +253,13 @@ export const ContainerDetailModal = ({
                     type="text"
                     value={logFilter}
                     onChange={(e) => setLogFilter(e.target.value)}
-                    placeholder="Logs filtern…"
+                    placeholder={t('detail.logFilterPh')}
                     className="w-full rounded-lg border border-zinc-800 bg-zinc-950 py-1 pl-8 pr-3 text-xs text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
 
                 <div className="flex items-center space-x-2 text-xs">
-                  <span className="text-zinc-500">{filteredLogs.length} Zeilen</span>
+                  <span className="text-zinc-500">{t('detail.lines', { count: filteredLogs.length })}</span>
                   <button
                     onClick={() => setAutoScroll(!autoScroll)}
                     className={`rounded-md border px-2.5 py-1 transition ${
@@ -262,12 +268,12 @@ export const ContainerDetailModal = ({
                         : 'border-zinc-800 bg-zinc-950 text-zinc-400'
                     }`}
                   >
-                    Auto-Scroll {autoScroll ? 'an' : 'aus'}
+                    {autoScroll ? t('detail.autoscrollOn') : t('detail.autoscrollOff')}
                   </button>
                   <button
                     onClick={handleDownloadLog}
                     className="rounded-md bg-zinc-800 p-1.5 text-emerald-400 transition hover:bg-zinc-700"
-                    title="Logs herunterladen"
+                    title={t('detail.downloadLogs')}
                   >
                     <Download className="h-3.5 w-3.5" />
                   </button>
@@ -278,13 +284,13 @@ export const ContainerDetailModal = ({
                 {logsLoading && logs.length === 0 ? (
                   <div className="flex items-center justify-center gap-2 py-10 text-zinc-500">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Logs werden geladen…
+                    {t('detail.logsLoading')}
                   </div>
                 ) : logsError ? (
                   <div className="py-10 text-center text-rose-400">{logsError}</div>
                 ) : filteredLogs.length === 0 ? (
                   <div className="py-10 text-center italic text-zinc-500">
-                    {logs.length === 0 ? 'Dieser Container hat nichts geloggt.' : 'Kein Treffer.'}
+                    {logs.length === 0 ? t('detail.logsEmpty') : t('detail.logsNoMatch')}
                   </div>
                 ) : (
                   filteredLogs.map((log, idx) => {
@@ -330,7 +336,7 @@ export const ContainerDetailModal = ({
             <div className="space-y-6">
               {container.status !== 'running' && (
                 <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-xs text-zinc-400">
-                  Container läuft nicht — es werden keine Messwerte erhoben.
+                  {t('detail.notRunning')}
                 </div>
               )}
 
@@ -354,21 +360,23 @@ export const ContainerDetailModal = ({
                 <div className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900 p-4">
                   <div className="flex items-center space-x-1.5 text-xs text-zinc-400">
                     <HardDrive className="h-4 w-4 text-cyan-400" />
-                    <span>Arbeitsspeicher</span>
+                    <span>{t('detail.memory')}</span>
                   </div>
                   <div className="font-mono text-2xl font-bold text-white">
                     {container.stats.memoryUsageMB.toFixed(0)} MB
                   </div>
                   <div className="text-[10px] text-zinc-500">
-                    Limit: {container.stats.memoryLimitMB} MB (
-                    {container.stats.memoryPercent.toFixed(1)} %)
+                    {t('detail.limit', {
+                      limit: container.stats.memoryLimitMB,
+                      pct: container.stats.memoryPercent.toFixed(1),
+                    })}
                   </div>
                 </div>
 
                 <div className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900 p-4">
                   <div className="flex items-center space-x-1.5 text-xs text-zinc-400">
                     <ArrowDownCircle className="h-4 w-4 text-purple-400" />
-                    <span>Netzwerk empfangen</span>
+                    <span>{t('detail.netRx')}</span>
                   </div>
                   <div className="font-mono text-2xl font-bold text-white">
                     {formatBytes(container.stats.networkRxKB * 1024)}
@@ -378,7 +386,7 @@ export const ContainerDetailModal = ({
                 <div className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900 p-4">
                   <div className="flex items-center space-x-1.5 text-xs text-zinc-400">
                     <ArrowUpCircle className="h-4 w-4 text-amber-400" />
-                    <span>Netzwerk gesendet</span>
+                    <span>{t('detail.netTx')}</span>
                   </div>
                   <div className="font-mono text-2xl font-bold text-white">
                     {formatBytes(container.stats.networkTxKB * 1024)}
@@ -387,13 +395,13 @@ export const ContainerDetailModal = ({
               </div>
 
               <div className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900 p-4">
-                <div className="text-xs font-semibold text-zinc-400">Entrypoint</div>
+                <div className="text-xs font-semibold text-zinc-400">{t('detail.entrypoint')}</div>
                 <code className="block rounded-lg border border-zinc-800 bg-zinc-950 p-3 font-mono text-xs text-emerald-400">
                   {detail?.command ?? container.command}
                 </code>
                 {detail && detail.restartCount > 0 && (
                   <p className="text-[11px] text-amber-400">
-                    Bereits {detail.restartCount}× neu gestartet.
+                    {t('detail.restarts', { count: detail.restartCount })}
                   </p>
                 )}
               </div>
@@ -404,15 +412,15 @@ export const ContainerDetailModal = ({
             <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
               {envEntries.length === 0 ? (
                 <div className="py-10 text-center text-sm text-zinc-500">
-                  {detail ? 'Keine Umgebungsvariablen gesetzt.' : 'Wird geladen…'}
+                  {detail ? t('detail.envEmpty') : t('detail.loading')}
                 </div>
               ) : (
                 <table className="w-full text-left text-xs">
                   <thead className="border-b border-zinc-800 bg-zinc-950 font-semibold text-zinc-500">
                     <tr>
-                      <SortableHeader columnKey="key" label="Schlüssel" sort={envSort.sort} onToggle={envSort.toggle} className="px-4 py-2.5" />
-                      <SortableHeader columnKey="value" label="Wert" sort={envSort.sort} onToggle={envSort.toggle} className="px-4 py-2.5" />
-                      <th className="px-4 py-2.5 text-right">Aktion</th>
+                      <SortableHeader columnKey="key" label={t('detail.thKey')} sort={envSort.sort} onToggle={envSort.toggle} className="px-4 py-2.5" />
+                      <SortableHeader columnKey="value" label={t('detail.thValue')} sort={envSort.sort} onToggle={envSort.toggle} className="px-4 py-2.5" />
+                      <th className="px-4 py-2.5 text-right">{t('detail.thAction')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/60 font-mono">
@@ -424,7 +432,7 @@ export const ContainerDetailModal = ({
                           <button
                             onClick={() => void handleCopy(`${k}=${v}`, k)}
                             className="rounded bg-zinc-800 p-1 text-zinc-300 transition hover:bg-zinc-700"
-                            aria-label={`${k} kopieren`}
+                            aria-label={t('detail.copyVar', { k })}
                           >
                             {copiedKey === k ? (
                               <Check className="h-3.5 w-3.5 text-emerald-400" />
@@ -445,7 +453,7 @@ export const ContainerDetailModal = ({
             <div className="space-y-4">
               {container.mounts.length === 0 ? (
                 <div className="rounded-xl border border-zinc-800 bg-zinc-900 py-10 text-center text-zinc-500">
-                  Keine Mounts konfiguriert.
+                  {t('detail.mountsEmpty')}
                 </div>
               ) : (
                 <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
@@ -454,10 +462,10 @@ export const ContainerDetailModal = ({
                       <tr>
                         {(
                           [
-                            ['type', 'Typ'],
-                            ['source', 'Quelle'],
-                            ['destination', 'Ziel im Container'],
-                            ['mode', 'Modus'],
+                            ['type', t('detail.thType')],
+                            ['source', t('detail.thSource')],
+                            ['destination', t('detail.thDest')],
+                            ['mode', t('detail.thMode')],
                           ] as [MountColumn, string][]
                         ).map(([key, label]) => (
                           <SortableHeader key={key} columnKey={key} label={label} sort={mountSort.sort} onToggle={mountSort.toggle} className="px-4 py-2.5" />
@@ -487,17 +495,17 @@ export const ContainerDetailModal = ({
           {activeTab === 'networks' && (
             <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
               {container.networks.length === 0 ? (
-                <div className="py-10 text-center text-zinc-500">Keine Netzwerke verbunden.</div>
+                <div className="py-10 text-center text-zinc-500">{t('detail.netsEmpty')}</div>
               ) : (
                 <table className="w-full text-left text-xs">
                   <thead className="border-b border-zinc-800 bg-zinc-950 font-semibold text-zinc-500">
                     <tr>
                       {(
                         [
-                          ['name', 'Netzwerk'],
-                          ['ip', 'IP-Adresse'],
-                          ['gateway', 'Gateway'],
-                          ['mac', 'MAC-Adresse'],
+                          ['name', t('detail.thNetwork')],
+                          ['ip', t('detail.thIp')],
+                          ['gateway', t('detail.thGateway')],
+                          ['mac', t('detail.thMac')],
                         ] as [NetworkColumn, string][]
                       ).map(([key, label]) => (
                         <SortableHeader key={key} columnKey={key} label={label} sort={networkSort.sort} onToggle={networkSort.toggle} className="px-4 py-2.5" />

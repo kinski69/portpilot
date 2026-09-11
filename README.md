@@ -44,6 +44,34 @@ Der Server stellt ausschließlich `GET`-Endpunkte bereit. Zum Steuern der Contai
 bleibt `docker` bzw. `docker compose` zuständig — den passenden Startbefehl legt
 PortPilot dir auf Wunsch in die Zwischenablage.
 
+## Neu in V1.4
+
+- **Exakte Omarchy-Tokens, flach wie btop** — Rollen direkt aus der
+  laufenden Shell (`btop.theme`, `shell.toml`, `Color.qml`): eine Fläche
+  `#101913` überall (Boxen trennen nur 1px-Outlines in muted `#4a684a`),
+  selected `#28302b`, Scrim `#101913` @50 %, keine Schatten, keine
+  Verläufe. Kein Wallpaper im Browser — flach wie das Vorbild
+
+## Neu in V1.3
+
+- **Omarchy-Stil statt nur Omarchy-Farben** — flach, kantig, Terminal-nah wie
+  btop & Co.: 1px-Borders, kleine Radien, keine Verläufe, keine Glows
+- **Adaptiv statt eingefärbt** — die App liest das aktive Omarchy-Theme
+  (`/api/theme` aus `colors.toml`) und folgt ihm automatisch (30-s-Takt plus
+  sofort bei Fenster-Fokus). Fest wählbar im Über-Dialog; ohne Omarchy gelten
+  die eingebauten Evergreen-Defaults. Endpunkte: `GET /api/theme[?name=…]`,
+  `GET /api/themes` — wie alles andere nur lesend
+
+## Neu in V1.2
+
+- **Omarchy-Theme „Evergreen"** — Palette aus
+  `~/.config/omarchy/themes/evergreen/colors.toml` (Akzent `#4a9a68`,
+  Hintergrund `#080d0a`), JetBrains Mono für Code und Kennzahlen
+- **Zweisprachig DE/EN** — 🇩🇪/🇬🇧-Umschalter in der Kopfzeile, Wahl wird in
+  `localStorage` (`portpilot-lang`) gespeichert und gilt ohne Neuladen für
+  die gesamte Oberfläche inklusive Status-Badges, Zeitangaben („vor 22 h" /
+  „22h ago") und Port-Konfliktmeldungen
+
 ## Neu in V1.1
 
 - **Neue Startseite „Übersicht"** — Lagebericht, sechs klickbare Kennzahlen-Boxen,

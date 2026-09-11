@@ -1,4 +1,5 @@
 import type { ContainerItem, PortCollision, PortMapping } from '../types';
+import { translate, type Lang } from '../i18n';
 
 /** Wildcard-Bindungen belegen den Port auf allen Interfaces. */
 const WILDCARD_IPS = new Set(['0.0.0.0', '::', '']);
@@ -26,7 +27,7 @@ function addressesOverlap(a: string, b: string): boolean {
  * - gleicher Port auf unterschiedlichen, nicht überlappenden Host-Adressen
  * - gleicher Port bei unterschiedlichem Protokoll (tcp/udp sind getrennte Namensräume)
  */
-export function detectPortCollisions(containers: ContainerItem[]): PortCollision[] {
+export function detectPortCollisions(containers: ContainerItem[], lang: Lang): PortCollision[] {
   // Pro Port und Protokoll alle Bindungen sammeln.
   const bindings = new Map<string, { container: ContainerItem; port: PortMapping }[]>();
 
@@ -83,7 +84,11 @@ export function detectPortCollisions(containers: ContainerItem[]): PortCollision
       // Laufende Container streiten sich real um den Socket; bei gestoppten ist
       // es nur eine Warnung für den nächsten Start.
       severity: involved.every((e) => e.container.status === 'running') ? 'critical' : 'warning',
-      description: `Host-Port ${port}/${protocol} wird von mehreren Containern belegt (${names}).`,
+      description: translate(lang, 'collision.desc', {
+        port,
+        proto: protocol,
+        names,
+      }),
     });
   }
 
@@ -142,19 +147,23 @@ export function formatBytes(bytes: number, decimals = 1): string {
   return `${Number.parseFloat((bytes / k ** i).toFixed(Math.max(0, decimals)))} ${sizes[i]}`;
 }
 
-export function formatUptime(createdIso: string): string {
+export function formatUptime(createdIso: string, lang: Lang): string {
   const created = new Date(createdIso).getTime();
-  if (Number.isNaN(created)) return 'unbekannt';
+  if (Number.isNaN(created)) return translate(lang, 'uptime.unknown');
 
   const diffSec = Math.floor((Date.now() - created) / 1000);
-  if (diffSec < 0) return 'gerade eben';
-  if (diffSec < 60) return `vor ${diffSec} s`;
-  if (diffSec < 3600) return `vor ${Math.floor(diffSec / 60)} min`;
-  if (diffSec < 86400) return `vor ${Math.floor(diffSec / 3600)} h`;
-  return `vor ${Math.floor(diffSec / 86400)} d`;
+  if (diffSec < 0) return translate(lang, 'uptime.justNow');
+  if (diffSec < 60) return translate(lang, 'uptime.seconds', { n: diffSec });
+  if (diffSec < 3600)
+    return translate(lang, 'uptime.minutes', { n: Math.floor(diffSec / 60) });
+  if (diffSec < 86400) return translate(lang, 'uptime.hours', { n: Math.floor(diffSec / 3600) });
+  return translate(lang, 'uptime.days', { n: Math.floor(diffSec / 86400) });
 }
 
-export function getStatusColorClass(status: ContainerItem['status']): {
+export function getStatusColorClass(
+  status: ContainerItem['status'],
+  lang: Lang,
+): {
   badgeBg: string;
   badgeText: string;
   dotBg: string;
@@ -163,31 +172,31 @@ export function getStatusColorClass(status: ContainerItem['status']): {
     case 'running':
       return {
         badgeBg: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
-        badgeText: 'Running',
-        dotBg: 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]',
+        badgeText: translate(lang, 'status.running'),
+        dotBg: 'bg-emerald-500 shadow-[0_0_8px_rgba(106,174,82,0.6)]',
       };
     case 'exited':
       return {
         badgeBg: 'bg-zinc-500/10 border-zinc-500/20 text-zinc-400',
-        badgeText: 'Exited',
+        badgeText: translate(lang, 'status.exited'),
         dotBg: 'bg-zinc-500',
       };
     case 'error':
       return {
         badgeBg: 'bg-rose-500/10 border-rose-500/20 text-rose-400',
-        badgeText: 'Error',
-        dotBg: 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]',
+        badgeText: translate(lang, 'status.error'),
+        dotBg: 'bg-rose-500 shadow-[0_0_8px_rgba(200,122,92,0.6)]',
       };
     case 'paused':
       return {
         badgeBg: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
-        badgeText: 'Paused',
+        badgeText: translate(lang, 'status.paused'),
         dotBg: 'bg-amber-500',
       };
     case 'restarting':
       return {
         badgeBg: 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400',
-        badgeText: 'Restarting',
+        badgeText: translate(lang, 'status.restarting'),
         dotBg: 'bg-cyan-500 animate-pulse',
       };
   }

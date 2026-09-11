@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { ContainerItem, PortCollision } from '../types';
 import { buildPortUrl } from '../utils/dockerUtils';
+import { plural, useLang } from '../i18n';
 import { useSortableRows, type SortValue } from '../hooks/useSortableRows';
 import { SortableHeader } from './SortableHeader';
 
@@ -25,6 +26,7 @@ export const PortOverview: React.FC<PortOverviewProps> = ({
   collisions,
   onSelectContainer
 }) => {
+  const { lang, t } = useLang();
   const [filterQuery, setFilterQuery] = useState('');
   const [onlyConflicts, setOnlyConflicts] = useState(false);
 
@@ -107,23 +109,30 @@ export const PortOverview: React.FC<PortOverviewProps> = ({
         <div>
           <h2 className="text-xl font-bold text-white flex items-center space-x-2">
             <Radio className="w-5 h-5 text-emerald-400" />
-            <span>Ports & Konflikte</span>
+            <span>{t('ports.title')}</span>
           </h2>
           <p className="text-xs text-zinc-400 mt-1">
-            Alle auf den Host veröffentlichten Ports, quer über alle Container und Compose-Projekte.
+            {t('ports.subtitle')}
           </p>
         </div>
 
         <div className="flex items-center space-x-2 text-xs">
           <div className="bg-zinc-900 px-3 py-1.5 rounded-lg border border-zinc-800 text-zinc-300">
-            Belegte Ports: <strong className="text-white">{occupiedPorts.length}</strong>
+            {t('ports.occupied')} <strong className="text-white">{occupiedPorts.length}</strong>
           </div>
           <div className={`px-3 py-1.5 rounded-lg border font-semibold ${
             collisions.length > 0
               ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 animate-pulse'
               : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
           }`}>
-            {collisions.length > 0 ? `${collisions.length} Konflikt${collisions.length > 1 ? 'e' : ''}` : 'Keine Konflikte'}
+            {collisions.length > 0
+              ? plural(
+                  lang,
+                  collisions.length,
+                  t('ports.conflictsOne', { count: collisions.length }),
+                  t('ports.conflictsMany', { count: collisions.length }),
+                )
+              : t('ports.noConflicts')}
           </div>
         </div>
       </div>
@@ -133,7 +142,7 @@ export const PortOverview: React.FC<PortOverviewProps> = ({
         <div className="bg-rose-950/40 border-2 border-rose-500/40 rounded-2xl p-4 space-y-3">
           <div className="flex items-center space-x-2 text-rose-300 font-bold text-sm">
             <ShieldAlert className="w-5 h-5 text-rose-400 animate-bounce" />
-            <span>Port-Konflikte erkannt</span>
+            <span>{t('ports.found')}</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
@@ -144,7 +153,7 @@ export const PortOverview: React.FC<PortOverviewProps> = ({
                     <span>Port {c.port}/{c.protocol}</span>
                   </div>
                   <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-semibold text-[10px]">
-                    KONFLIKT
+                    {t('ports.conflictTag')}
                   </span>
                 </div>
 
@@ -153,7 +162,7 @@ export const PortOverview: React.FC<PortOverviewProps> = ({
                 </p>
 
                 <div className="pt-2 border-t border-zinc-800 flex items-center justify-between gap-2">
-                  <span className="text-zinc-500 text-[10px] shrink-0">Beteiligt:</span>
+                  <span className="text-zinc-500 text-[10px] shrink-0">{t('ports.involved')}</span>
                   <div className="flex flex-wrap gap-1 justify-end">
                     {c.containers.map(item => (
                       <span
@@ -180,7 +189,7 @@ export const PortOverview: React.FC<PortOverviewProps> = ({
             type="text"
             value={filterQuery}
             onChange={(e) => setFilterQuery(e.target.value)}
-            placeholder="Port, Container oder Projekt suchen…"
+            placeholder={t('ports.searchPh')}
             className="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
           />
         </div>
@@ -194,15 +203,15 @@ export const PortOverview: React.FC<PortOverviewProps> = ({
           }`}
         >
           <Filter className="w-3.5 h-3.5" />
-          <span>Nur Konflikte ({collisions.length})</span>
+          <span>{t('ports.onlyConflicts', { count: collisions.length })}</span>
         </button>
       </div>
 
       {/* Common Ports Visual Spectrum */}
       <div className="bg-zinc-900/60 p-4 rounded-xl border border-zinc-800 space-y-2">
         <div className="text-xs font-semibold text-zinc-400 flex items-center justify-between">
-          <span>Häufig genutzte Ports</span>
-          <span className="text-[10px] text-zinc-500">Grün = frei, Rot = Konflikt, Cyan = belegt</span>
+          <span>{t('ports.commonTitle')}</span>
+          <span className="text-[10px] text-zinc-500">{t('ports.commonLegend')}</span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 pt-1">
@@ -224,7 +233,7 @@ export const PortOverview: React.FC<PortOverviewProps> = ({
               >
                 <div className="font-mono font-bold text-xs">{port}</div>
                 <div className="text-[9px] mt-0.5 truncate">
-                  {isConflict ? 'Konflikt' : isBound ? matches[0].containerName : 'frei'}
+                  {isConflict ? t('ports.commonConflict') : isBound ? matches[0].containerName : t('ports.commonFree')}
                 </div>
               </div>
             );
@@ -240,11 +249,11 @@ export const PortOverview: React.FC<PortOverviewProps> = ({
               <tr>
                 {(
                   [
-                    ['hostPort', 'Host-Port'],
-                    ['container', 'Container'],
-                    ['hostIp', 'Gebunden an'],
-                    ['containerPort', 'Container-Port'],
-                    ['status', 'Status'],
+                    ['hostPort', t('ports.thHostPort')],
+                    ['container', t('ports.thContainer')],
+                    ['hostIp', t('ports.thBoundTo')],
+                    ['containerPort', t('ports.thContainerPort')],
+                    ['status', t('ports.thStatus')],
                   ] as [PortColumn, string][]
                 ).map(([key, label]) => (
                   <SortableHeader
@@ -262,7 +271,7 @@ export const PortOverview: React.FC<PortOverviewProps> = ({
               {sorted.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="text-center py-10 text-zinc-500">
-                    Kein Port passt zum Filter.
+                    {t('ports.emptyFilter')}
                   </td>
                 </tr>
               ) : (
@@ -289,7 +298,7 @@ export const PortOverview: React.FC<PortOverviewProps> = ({
                               href={url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              title={`${url} in neuem Tab öffnen`}
+                              title={t('cont.openInTab', { url })}
                               className={`${color} underline decoration-dotted underline-offset-4 hover:decoration-solid`}
                             >
                               :{item.hostPort}
@@ -310,7 +319,7 @@ export const PortOverview: React.FC<PortOverviewProps> = ({
                         </button>
                         {item.composeProject && (
                           <div className="text-[10px] text-zinc-500 font-mono mt-0.5">
-                            Project: {item.composeProject}
+                            {t('cont.projectLabel')} {item.composeProject}
                           </div>
                         )}
                       </td>
@@ -327,12 +336,12 @@ export const PortOverview: React.FC<PortOverviewProps> = ({
                         {item.isColliding ? (
                           <span className="px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-semibold text-[10px] flex items-center space-x-1 w-fit animate-pulse">
                             <AlertTriangle className="w-3 h-3" />
-                            <span>KONFLIKT</span>
+                            <span>{t('ports.conflictTag')}</span>
                           </span>
                         ) : (
                           <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] flex items-center space-x-1 w-fit">
                             <CheckCircle2 className="w-3 h-3" />
-                            <span>OK</span>
+                            <span>{t('ports.okTag')}</span>
                           </span>
                         )}
                       </td>

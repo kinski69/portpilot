@@ -1,6 +1,8 @@
 import { Activity, Anchor, Cpu, RefreshCw, Search, ShieldAlert } from 'lucide-react';
 import type { HealthInfo } from '../api/client';
 import type { ActiveTab } from '../types';
+import { plural, useLang } from '../i18n';
+import { LangSwitch } from './LangSwitch';
 
 interface HeaderProps {
   searchQuery: string;
@@ -29,6 +31,8 @@ export const Header = ({
   setIsLiveStreaming,
   health,
 }: HeaderProps) => {
+  const { lang, t } = useLang();
+
   return (
     <header className="sticky top-0 z-40 select-none border-b border-zinc-800/60 bg-zinc-950/85 backdrop-blur">
       <div className="flex flex-wrap items-center gap-3 px-4 py-3">
@@ -50,7 +54,7 @@ export const Header = ({
             <button
               onClick={onOpenAbout}
               className="font-mono text-[10px] text-zinc-500 transition hover:text-cyan-300"
-              title="Über PortPilot"
+              title={t('header.aboutTitle')}
             >
               {health?.socket ?? '/var/run/docker.sock'}
             </button>
@@ -64,14 +68,14 @@ export const Header = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Container, Image oder Port suchen (z. B. '8000', 'ollama', 'running')…"
+            placeholder={t('header.searchPlaceholder')}
             className="w-full rounded-xl border border-zinc-800 bg-zinc-900/70 py-2 pl-9 pr-8 text-sm text-zinc-100 placeholder-zinc-500 transition focus:border-emerald-500/50 focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-zinc-500 transition hover:text-zinc-200"
-              aria-label="Suche zurücksetzen"
+              aria-label={t('header.clearSearch')}
             >
               ✕
             </button>
@@ -83,7 +87,7 @@ export const Header = ({
           <div className="flex items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/70 px-3 py-2">
             <Activity className="h-3.5 w-3.5 text-emerald-300" />
             <span className="font-semibold text-emerald-300">{runningCount}</span>
-            <span className="text-zinc-500">/ {totalContainers} laufend</span>
+            <span className="text-zinc-500">{t('header.runningOf', { total: totalContainers })}</span>
           </div>
 
           {collisionCount > 0 ? (
@@ -92,12 +96,17 @@ export const Header = ({
               className="flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/12 px-3 py-2 font-semibold text-rose-300 transition hover:bg-rose-500/20"
             >
               <ShieldAlert className="h-3.5 w-3.5" />
-              {collisionCount} Port-{collisionCount === 1 ? 'Konflikt' : 'Konflikte'}
+              {plural(
+                lang,
+                collisionCount,
+                t('header.conflictsOne', { count: collisionCount }),
+                t('header.conflictsMany', { count: collisionCount }),
+              )}
             </button>
           ) : (
             <div className="flex items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/70 px-3 py-2 text-zinc-400">
               <Cpu className="h-3.5 w-3.5 text-cyan-300" />
-              Keine Konflikte
+              {t('header.noConflicts')}
             </div>
           )}
 
@@ -109,7 +118,7 @@ export const Header = ({
           ) : (
             <div className="flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/12 px-3 py-2 font-mono text-[11px] text-rose-300">
               <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
-              Engine getrennt
+              {t('header.engineOffline')}
             </div>
           )}
 
@@ -120,20 +129,22 @@ export const Header = ({
                 ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
                 : 'border-zinc-800 bg-zinc-900/70 text-zinc-400 hover:text-zinc-200'
             }`}
-            title="Laufende Messwerte an- oder abschalten"
+            title={t('header.liveTitle')}
           >
             <span
               className={`h-1.5 w-1.5 rounded-full ${
                 isLiveStreaming ? 'animate-pulse bg-emerald-400' : 'bg-zinc-600'
               }`}
             />
-            {isLiveStreaming ? 'Live-Stats an' : 'Pausiert'}
+            {isLiveStreaming ? t('header.liveOn') : t('header.liveOff')}
           </button>
+
+          <LangSwitch />
 
           <button
             onClick={onRefresh}
             className="grid h-9 w-9 place-items-center rounded-xl border border-zinc-800 bg-zinc-900/70 text-zinc-300 transition hover:border-cyan-500/40 hover:text-cyan-300"
-            title="Alles neu laden"
+            title={t('header.refreshTitle')}
           >
             <RefreshCw className="h-4 w-4" />
           </button>

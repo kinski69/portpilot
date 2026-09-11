@@ -1,6 +1,7 @@
 import React from 'react';
 import { Activity, Trash2 } from 'lucide-react';
 import { DockerSystemEvent } from '../types';
+import { useLang } from '../i18n';
 
 interface EventsLogViewProps {
   events: DockerSystemEvent[];
@@ -11,16 +12,17 @@ export const EventsLogView: React.FC<EventsLogViewProps> = ({
   events,
   onClearEvents
 }) => {
+  const { t } = useLang();
   return (
     <div className="flex-1 p-5 overflow-y-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-white flex items-center space-x-2">
             <Activity className="w-5 h-5 text-emerald-400" />
-            <span>Engine-Ereignisse</span>
+            <span>{t('events.title')}</span>
           </h2>
           <p className="text-xs text-zinc-400 mt-1">
-            Live-Stream der Docker-Engine. Ereignisse werden gepusht, nicht abgefragt.
+            {t('events.desc')}
           </p>
         </div>
 
@@ -29,7 +31,7 @@ export const EventsLogView: React.FC<EventsLogViewProps> = ({
           className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold text-xs flex items-center space-x-1.5 transition"
         >
           <Trash2 className="w-3.5 h-3.5" />
-          <span>Liste leeren</span>
+          <span>{t('events.clear')}</span>
         </button>
       </div>
 
@@ -37,15 +39,15 @@ export const EventsLogView: React.FC<EventsLogViewProps> = ({
         <div className="p-3 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between text-xs text-zinc-400 font-mono">
           <div className="flex items-center space-x-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span className="text-emerald-400 font-bold">Abonniert: /api/events</span>
+            <span className="text-emerald-400 font-bold">{t('events.subscribed')}</span>
           </div>
-          <span>Empfangen: {events.length}</span>
+          <span>{t('events.received', { n: events.length })}</span>
         </div>
 
         <div className="divide-y divide-zinc-800/60 font-mono text-xs">
           {events.length === 0 ? (
             <div className="text-center py-12 text-zinc-500 font-sans">
-              Noch keine Ereignisse. Sobald ein Container startet oder stoppt, erscheint es hier.
+              {t('events.empty')}
             </div>
           ) : (
             events.map(ev => (
