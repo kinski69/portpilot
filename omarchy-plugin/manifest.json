@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "mbo.portpilot",
+  "name": "PortPilot",
+  "version": "0.1.0",
+  "author": "mbo (port of kinski69/portpilot)",
+  "license": "Apache-2.0",
+  "description": "Read-only Docker/Podman ports monitor for the bar: running count, published host ports and port-conflict warnings. No start/stop/remove — like upstream PortPilot.",
+  "homepage": "https://github.com/kinski69/portpilot",
+  "keywords": ["docker", "podman", "ports", "containers"],
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "PortPilot",
+    "description": "Container + port conflicts at a glance. Read-only.",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "refreshIntervalSec": 5,
+      "showCount": true
+    },
+    "schema": [
+      {
+        "key": "refreshIntervalSec",
+        "type": "integer",
+        "label": "Refresh interval (seconds)",
+        "min": 2,
+        "max": 300,
+        "step": 1,
+        "defaultValue": 5,
+        "description": "How often the container list refreshes while the panel is open. Closed, it backs off to 30 seconds."
+      },
+      {
+        "key": "showCount",
+        "type": "boolean",
+        "label": "Show running count in the bar",
+        "defaultValue": true
+      },
+      {
+        "key": "portpilotAppDir",
+        "type": "string",
+        "label": "PortPilot app directory",
+        "defaultValue": "",
+        "description": "Checkout with bin/portpilot (full Web-UI). Empty means ~/Work/portpilot. The footer button starts it there."
+      }
+    ]
+  }
+}

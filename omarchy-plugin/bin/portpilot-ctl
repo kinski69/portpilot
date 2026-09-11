@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# Helper for the mbo.portpilot Omarchy bar widget (read-only port of
+# kinski69/portpilot: containers, published host ports, port conflicts).
+#
+#   portpilot-ctl list        TSV (0x1F separated), one line per container:
+#                             name, image, state, status, project, ports, id
+#   portpilot-ctl engine      prints "docker" or "podman"
+#
+# The QML panel stays presentational: engine detection and output parsing live
+# here so they can be tested from a terminal.
+#
+# Read-only by design: no start/stop/remove. See upstream README
+# ("Nur lesend") — controlling stays with `docker` / `podman` / compose.
+
+set -uo pipefail
+
+MAX_ROWS=200
+MAX_BYTES=262144
+MAX_DIAG=400
+FS=$'\x1f'
+
+die() {
+  printf '%s' "${1:0:MAX_DIAG}" >&2
+  exit 1
+}
+
+pick_engine() {
+  if [[ -n "${PORTPILOT_ENGINE:-}" ]]; then
+    command -v "$PORTPILOT_ENGINE" >/dev/null 2>&1 || die "engine-missing"
+    printf '%s' "$PORTPILOT_ENGINE"
+    return
+  fi
+  if command -v docker >/dev/null 2>&1; then printf 'docker'; return; fi
+  if command -v podman >/dev/null 2>&1; then printf 'podman'; return; fi
+  die "engine-missing"
+}
+
+cmd_list() {
+  local engine="$1"
+  if [[ "$engine" == "podman" ]]; then
+    podman ps -a --format json 2>/dev/null | head -c "$MAX_BYTES" | python3 -c '
+import json,sys
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+FS = "\x1f"
+for c in data[:200]:
+    names = c.get("Names") or []
+    name = (names[0].lstrip("/") if names else c.get("Id","")[:12])
+    image = c.get("Image","")
+    state = (c.get("State") or "").lower()
+    status = c.get("Status","")
+    labels = c.get("Labels") or {}
+    project = labels.get("com.docker.compose.project","") or labels.get("com.docker.compose.project.working_dir","")
+    ports = []
+    for p in c.get("Ports") or []:
+        hip = p.get("host_ip") or "0.0.0.0"
+        hp = p.get("host_port") or 0
+        cp = p.get("container_port") or 0
+        proto = (p.get("protocol") or "tcp").lower()
+        if hp and cp:
+            ports.append(f"{hip}:{hp}->{cp}/{proto}")
+    print(FS.join([str(name), str(image), str(state), str(status), str(project), ", ".join(ports), str(c.get("Id","")[:12])]))
+'
+    return
+  fi
+  docker ps -a --format '{{json .}}' 2>/dev/null | head -c "$MAX_BYTES" | python3 -c '
+import json,sys
+FS = "\x1f"
+n = 0
+for line in sys.stdin:
+    line = line.strip()
+    if not line or n >= 200:
+        continue
+    try:
+        c = json.loads(line)
+    except Exception:
+        continue
+    name = (c.get("Names") or "").lstrip("/")
+    image = c.get("Image","")
+    state = (c.get("State") or "").lower()
+    status = c.get("Status","")
+    labels = c.get("Labels") or ""
+    project = ""
+    # Labels arrive as "k=v,k=v" string in this format; fish out the project.
+    for kv in str(labels).split(","):
+        if kv.startswith("com.docker.compose.project="):
+            project = kv.split("=",1)[1]
+            break
+    ports = c.get("Ports","")
+    cid = str(c.get("ID",""))[:12]
+    if not name:
+        name = cid
+    print(FS.join([name, image, state, status, project, ports, cid]))
+    n += 1
+'
+}
+
+main() {
+  local cmd="${1:-list}"
+  case "$cmd" in
+    engine)
+      pick_engine
+      ;;
+    list)
+      local engine
+      engine="$(pick_engine)" || exit $?
+      local errfile out rc
+      errfile="$(mktemp /tmp/portpilot-ctl.XXXXXX.err)"
+      out="$(cmd_list "$engine" 2>"$errfile")"
+      rc=$?
+      if [[ $rc -ne 0 ]]; then
+        local err
+        err="$(cat "$errfile" 2>/dev/null || true)"
+        rm -f "$errfile"
+        if [[ "${err,,}" == *"permission denied"* ]]; then die "engine-permission"; fi
+        die "daemon-unreachable"
+      fi
+      rm -f "$errfile"
+      printf '%s' "$out"
+      ;;
+    *)
+      die "unknown-command"
+      ;;
+  esac
+}
+
+main "$@"

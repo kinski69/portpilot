@@ -23,6 +23,36 @@ inklusive Belegungsraster für die üblichen Verdächtigen:
 
 ![PortPilot — Images](assets/v11-images.png)
 
+## Omarchy-Fassung (V1.4)
+
+Dasselbe Dashboard, angepasst an Omarchy: exakte Shell-Tokens (Farben,
+1px-Borders, Mono-Font), zweisprachig DE/EN mit Flaggen-Umschalter — plus
+drei Integrationen in ein Paket:
+
+- **Menüleisten-Widget** (`omarchy-plugin/`) — Container-Zähler mit
+  Port-Konflikt-Warnung direkt in der Top-Bar:
+
+  ![PortPilot — Menüleisten-Widget](assets/v14-omarchy-widget.png)
+
+- **Menü/Panel** — Klick aufs Widget öffnet das Panel: Zähler, Container mit
+  Published Ports, Refresh und Direktstart der Web-UI:
+
+  ![PortPilot — Widget-Panel](assets/v14-omarchy-panel.png)
+
+- **Browser-Funktionalität** — veröffentlichte TCP-Ports öffnen per Klick im
+  Browser; der `:7070`-Knopf im Panel startet die Web-UI gleich mit:
+
+  ![PortPilot — Omarchy-Dashboard](assets/v14-omarchy-dashboard.png)
+
+Widget installieren:
+
+```bash
+cp -r omarchy-plugin ~/.config/omarchy/plugins/mbo.portpilot
+omarchy plugin validate ~/.config/omarchy/plugins/mbo.portpilot
+omarchy bar put mbo.portpilot --after omarchy.system-update
+# danach Shell neu laden (Re-Login)
+```
+
 ## Kernfeatures
 
 - **Übersicht** — Kennzahlen, Anteil aktiver Dienste, Hostlast, Container-Kacheln
