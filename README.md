@@ -7,7 +7,54 @@ Port-Konflikte zu finden, bevor sie einen Start scheitern lassen.
 **Nur lesend.** PortPilot startet, stoppt oder löscht nichts. Es gibt keine
 Endpunkte, die etwas verändern.
 
-## Oberfläche (V1.1)
+## Omarchy PortPilot
+
+Angepasste Fassung für Omarchy: exakte Shell-Tokens (Farben, 1px-Borders,
+JetBrainsMono Nerd Font), zweisprachig DE/EN mit Flaggen-Umschalter, und die
+App folgt dem aktiven Omarchy-Theme automatisch (`/api/theme`, Festwahl im
+Über-Dialog). Dazu ein natives Menüleisten-Widget — alles aus einem Repo.
+
+![PortPilot — Omarchy-Dashboard](assets/v14-omarchy-dashboard.png)
+
+### Funktionen der Web-App
+
+- **Übersicht** — Lagebericht, Kennzahlen, Auslastungsring, Hostlast, Container-Kacheln
+- **Container** — Kachel-/Tabellenansicht, Compose-Gruppierung, Statusfilter, Volltextsuche
+- **Port-Konflikte** — Host-Ports über alle Projekte, Wildcard-Erkennung, Belegungsraster
+- **Detailfenster** — Logs (filterbar, speicherbar), Messwerte, Umgebung, Mounts, Netzwerke
+- **Images, Volumes, Netzwerke** — sortierbar, `dangling`/ungenutzt markiert
+- **Ereignisse** — Engine-Livestream per Server-Sent Events, kein Polling
+- **Omarchy-Extras** — DE/EN-Flaggen, Theme-Follow, JetBrainsMono überall
+
+### Funktionen des Widgets (`omarchy-plugin/`)
+
+- **Zähler in der Top-Bar** — laufende Container (Anker-Symbol), Konfliktzahl bei Warnung
+- **Konfliktwarnung** — Badge in der Leiste plus Banner im Panel bei belegten Host-Ports
+- **Panel** — Hero mit Zähler, Containerzeilen mit Published Ports, Tastaturkurzel
+  (`Enter`/`O` öffnet Port, `C` kopiert Startbefehl, `R` lädt neu)
+- **Browser-Start** — `:7070`-Knopf startet die Web-UI gleich mit
+- **Nur lesend** — Steuern bleibt bei `docker`/`docker compose`
+
+![PortPilot — Menüleisten-Widget](assets/v14-omarchy-widget.png)
+
+![PortPilot — Widget-Panel](assets/v14-omarchy-panel.png)
+
+Widget installieren:
+
+```bash
+cp -r omarchy-plugin ~/.config/omarchy/plugins/mbo.portpilot
+omarchy plugin validate ~/.config/omarchy/plugins/mbo.portpilot
+omarchy bar put mbo.portpilot --after omarchy.system-update
+# danach Shell neu laden (Re-Login)
+```
+
+## Linux: PortPilot
+
+Klassische Fassung für beliebige Linux-Desktops: dieselbe Engine und dieselben
+Funktionen, mit eingebauten Evergreen-Defaults statt Theme-Follow und ohne
+Widget-Abhängigkeit.
+
+### Oberfläche (V1.1)
 
 **Übersicht** — Lagebericht, Kennzahlen-Boxen, Auslastungsring, Hostlast und
 Container-Kacheln mit CPU-Verlauf:
@@ -22,36 +69,6 @@ inklusive Belegungsraster für die üblichen Verdächtigen:
 **Images** — lokal vorhandene Abbilder mit Größe, Verwendung und `dangling`-Markierung:
 
 ![PortPilot — Images](assets/v11-images.png)
-
-## Omarchy-Fassung (V1.4)
-
-Dasselbe Dashboard, angepasst an Omarchy: exakte Shell-Tokens (Farben,
-1px-Borders, Mono-Font), zweisprachig DE/EN mit Flaggen-Umschalter — plus
-drei Integrationen in ein Paket:
-
-- **Menüleisten-Widget** (`omarchy-plugin/`) — Container-Zähler mit
-  Port-Konflikt-Warnung direkt in der Top-Bar:
-
-  ![PortPilot — Menüleisten-Widget](assets/v14-omarchy-widget.png)
-
-- **Menü/Panel** — Klick aufs Widget öffnet das Panel: Zähler, Container mit
-  Published Ports, Refresh und Direktstart der Web-UI:
-
-  ![PortPilot — Widget-Panel](assets/v14-omarchy-panel.png)
-
-- **Browser-Funktionalität** — veröffentlichte TCP-Ports öffnen per Klick im
-  Browser; der `:7070`-Knopf im Panel startet die Web-UI gleich mit:
-
-  ![PortPilot — Omarchy-Dashboard](assets/v14-omarchy-dashboard.png)
-
-Widget installieren:
-
-```bash
-cp -r omarchy-plugin ~/.config/omarchy/plugins/mbo.portpilot
-omarchy plugin validate ~/.config/omarchy/plugins/mbo.portpilot
-omarchy bar put mbo.portpilot --after omarchy.system-update
-# danach Shell neu laden (Re-Login)
-```
 
 ## Kernfeatures
 
